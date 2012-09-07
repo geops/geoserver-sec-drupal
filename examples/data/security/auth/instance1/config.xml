@@ -1,0 +1,10 @@
+<drupal>
+  <id>-98ef511:1392a2c93d7:-8000</id>
+  <name>instance1</name>
+  <className>org.cartaro.geoserver.security.drupal.DrupalAuthenticationProvider</className>
+  <databaseHost>localhost</databaseHost>
+  <databasePort>5432</databasePort>
+  <databaseName>cartaro</databaseName>
+  <databaseUser>drupal-7</databaseUser>
+  <databasePassword>drupal-7</databasePassword>
+</drupal>

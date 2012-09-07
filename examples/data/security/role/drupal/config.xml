@@ -1,0 +1,6 @@
+<drupal>
+  <id>-70a5b806:13934efe810:-7fff</id>
+  <!-- Must match roleServiceName in data/security/config.xml -->
+  <name>drupal</name>
+  <className>org.cartaro.geoserver.security.drupal.DrupalRoleService</className>
+</drupal>

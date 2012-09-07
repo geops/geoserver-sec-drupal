@@ -1,0 +1,25 @@
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<!-- The rules in this file override the default implementations for user, 
+	groups, REST access and layer permissions. The file needs to be loaded after 
+	GeoServer's default security definition in order to override them. -->
+<beans>
+	<!-- The dao used to deal with layer level security -->
+	<bean id="accessRulesDao"
+		class="org.cartaro.geoserver.security.drupal.filter.DrupalDataAccessRuleDAO">
+		<constructor-arg ref="dataDirectory" />
+		<constructor-arg ref="rawCatalog" />
+	</bean>
+
+	<!-- The dao used to deal with rest security -->
+	<bean id="restRulesDao"
+		class="org.cartaro.geoserver.security.drupal.filter.DrupalRESTAccessRuleDAO">
+		<constructor-arg ref="dataDirectory" />
+	</bean>
+
+	<!-- Helper class to inject REST access rules by using objects instead of 
+		strings -->
+	<bean id="restFilterDefinitionMap"
+		class="org.cartaro.geoserver.security.drupal.filter.DrupalRESTfulDefinitionSource">
+		<constructor-arg ref="restRulesDao" />
+	</bean>
+</beans>
