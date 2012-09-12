@@ -14,6 +14,13 @@ public class DrupalSecurityServiceConfig extends BaseSecurityNamedServiceConfig
 	private String databaseHost = "localhost";
 	private Integer databasePort = 5432;
 
+	/**
+	 * Flag to indicate if user names should be prefixed with the configuration
+	 * name that provided them. Set to true to share a single GeoServer instance
+	 * with other accessors.
+	 */
+	private boolean usePrefix = false;
+
 	public Integer getDatabasePort() {
 		return databasePort;
 	}
@@ -117,7 +124,18 @@ public class DrupalSecurityServiceConfig extends BaseSecurityNamedServiceConfig
 	 *         within GeoServer across Drupal instances.
 	 */
 	public String getDrupalInstancePrefix() {
-		return getName() + ":";
+		if (isUsePrefix()) {
+			return getName() + ":";
+		}
+		return "";
+	}
+
+	public boolean isUsePrefix() {
+		return usePrefix;
+	}
+
+	public void setUsePrefix(boolean usePrefix) {
+		this.usePrefix = usePrefix;
 	}
 
 }

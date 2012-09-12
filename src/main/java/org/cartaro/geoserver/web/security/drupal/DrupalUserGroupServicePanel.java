@@ -1,5 +1,6 @@
 package org.cartaro.geoserver.web.security.drupal;
 
+import org.apache.wicket.markup.html.form.CheckBox;
 import org.apache.wicket.markup.html.form.TextField;
 import org.apache.wicket.model.IModel;
 import org.cartaro.geoserver.security.drupal.DrupalSecurityServiceConfig;
@@ -21,6 +22,7 @@ public class DrupalUserGroupServicePanel extends
 		add(new TextField<String>("databaseName", String.class));
 		add(new TextField<String>("databaseUser", String.class));
 		add(new TextField<String>("databasePassword", String.class));
+		add(new CheckBox("usePrefix"));
 	}
 
 }
