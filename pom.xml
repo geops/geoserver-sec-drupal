@@ -52,4 +52,14 @@ This is an plugin for GeoServer and not part of it.</description>
             <scope>test</scope>
         </dependency>
 	</dependencies>
+    <repositories>
+        <repository>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <id>opengeo</id>
+            <name>OpenGeo Maven Repository</name>
+            <url>http://repo.opengeo.org</url>
+        </repository>
+    </repositories>
 </project>
