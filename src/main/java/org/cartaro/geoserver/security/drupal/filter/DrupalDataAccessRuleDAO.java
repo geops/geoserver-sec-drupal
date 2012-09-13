@@ -18,7 +18,7 @@ import org.geotools.util.logging.Logging;
 public class DrupalDataAccessRuleDAO extends DataAccessRuleDAO {
 	protected static Logger LOGGER = Logging.getLogger(DrupalDataAccessRuleDAO.class);
 	private Catalog rawCatalog;
-
+	
 	protected DrupalDataAccessRuleDAO(GeoServerDataDirectory dd, Catalog rawCatalog) throws IOException{
 		super(dd, rawCatalog);
 		LOGGER.info("Injected: DrupalDataAccessRuleDAO");

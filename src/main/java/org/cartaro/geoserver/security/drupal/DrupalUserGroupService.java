@@ -42,7 +42,7 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 	private DrupalDatabaseConnector connector;
 	private String passwordEncoderName;
 	private String passwordValidatorName;
-
+	
 	@Override
 	public void initializeFromConfig(SecurityNamedServiceConfig config)
 			throws IOException {

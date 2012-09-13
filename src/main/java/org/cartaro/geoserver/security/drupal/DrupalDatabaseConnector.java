@@ -97,7 +97,7 @@ public class DrupalDatabaseConnector {
 	 */
 	public String stripInstancePrefix(String prefixed) {
 		if(!prefixed.startsWith(instancePrefix)){
-			throw new IllegalArgumentException("Does not have prefix to be stripped.");
+			throw new IllegalArgumentException("Does not have prefix to be stripped: "+prefixed);
 		}
 		return prefixed.substring(instancePrefix.length());
 	}

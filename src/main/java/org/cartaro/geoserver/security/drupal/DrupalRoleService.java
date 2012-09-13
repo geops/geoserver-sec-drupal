@@ -1,6 +1,7 @@
 package org.cartaro.geoserver.security.drupal;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -9,11 +10,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 import org.geoserver.catalog.Catalog;
@@ -58,6 +62,37 @@ public class DrupalRoleService implements GeoServerRoleService {
 			}
 		}
 		LOGGER.info("Merging Drupal role services: " + userGroupServices.size());
+		
+		// Regularly clear GeoServer's cache for user and group services.
+		// This is required that GeoServer requests users thus their roles, too, when needed. If
+		// the cache is there changes to users and roles in Drupal won't be reflected in GeoServer.
+		// Please change to a more suited implementation as soon as a more reliable way of doing this
+		// is available!
+		final Timer timer = new Timer();
+		timer.scheduleAtFixedRate(new TimerTask() {
+			@Override
+			public void run() {
+				GeoServerSecurityManager manager = GeoServerExtensions
+						.bean(GeoServerSecurityManager.class);
+				try {
+					LOGGER.info("Trying to clear GeoServer's cache for user and group services.");
+					// Access the cache via reflection to override access modifiers
+					Field f = GeoServerSecurityManager.class.getDeclaredField("userGroupServices");
+					f.setAccessible(true);
+					ConcurrentHashMap<String, GeoServerUserGroupService> userGroupServices = (ConcurrentHashMap<String, GeoServerUserGroupService>) f.get(manager);
+					userGroupServices.clear();
+					LOGGER.info("Clearing GeoServer's cache for user and group services succeeded.");
+				} catch (SecurityException e) {
+					e.printStackTrace();
+				} catch (NoSuchFieldException e) {
+					e.printStackTrace();
+				} catch (IllegalArgumentException e) {
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+					e.printStackTrace();
+				}
+			}
+		}, 5000, 5000);
 	}
 
 	public boolean canCreateStore() {

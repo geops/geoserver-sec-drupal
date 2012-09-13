@@ -73,6 +73,7 @@ public class DrupalAuthenticationProvider extends
 			try {
 				drupalUserName = connector.stripInstancePrefix(token
 						.getPrincipal().toString());
+				LOGGER.info("Stripped user name: "+drupalUserName);
 			} catch (IllegalArgumentException e) {
 				// Prefix mismatch. State that this instance is not responsible for authenticating in user.
 				return null;
