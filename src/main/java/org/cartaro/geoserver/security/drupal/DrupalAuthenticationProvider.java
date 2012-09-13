@@ -87,7 +87,7 @@ public class DrupalAuthenticationProvider extends
 				// Grant access to any Drupal instances that are currently being installed
 				credentialsValid = true;
 			} else {
-				ResultSet rs = connector.getResultSet("select pass from users where name=?",
+				ResultSet rs = connector.getResultSet("select pass from users where name=? and status=1",
 						drupalUserName);
 				boolean userFound = rs.next();
 				if (userFound == false) {
