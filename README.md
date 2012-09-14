@@ -31,14 +31,14 @@ Roles and users from Drupal are currently read-only in GeoServer. Use the Drupal
 Permission Mapping
 ------------------
 <table>
-	<tr><th>Drupal Permission</th><th>GeoServer Permission</th></tr>
-	<tr><td>Administer GeoServer</td><td>Admin</td></tr>
-	<tr><td>*Create new content* or *Edit own content* or *Edit any content* or *Delete own content* or *Delete any content*</td><td>Write</td></tr>
+	<tr><th>Drupal Permission, group GeoServer</th><th>GeoServer Permission</th></tr>
+	<tr><td>*Administer GeoServer*</td><td>Admin</td></tr>
+	<tr><td>*Edit any content*</td><td>Write</td></tr>
 	<tr><td>*View any content*</td><td>View</td>
 </table>
 All administrative permissions set by Drupal do only affect the workspace that is named as the Drupal binding in GeoServer. REST services are filtered based on the layer permissions.
 
-Note that Drupal requires *View published content* to be set even if a user is only about to view or create its own content. Edge-cases such as administrative privileges for Drupal users with certain identifiers are not honored by GeoServer – use permissions bound via roles instead.
+Note that Drupal requires *View published content* to be set even if a user is only about to view or create its own content. Edge-cases of the Drupal permission system that are not stored in the database are not necessarily honored by GeoServer – use permissions bound via roles instead.
 
 License
 =======
