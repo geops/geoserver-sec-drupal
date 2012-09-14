@@ -10,12 +10,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
@@ -69,6 +69,16 @@ public class DrupalRoleService implements GeoServerRoleService {
 		// Please change to a more suited implementation as soon as a more reliable way of doing this
 		// is available!
 		final Timer timer = new Timer();
+		// Default interval is 5000ms but can be adjusted by setting geoserver-sec-drupal.userGroupServiceClearInterval context parameter
+		long userGroupServiceClearInterval = 5000;
+		String userGroupServiceClearIntervalString = GeoServerExtensions.getProperty("geoserver-sec-drupal.userGroupServiceClearInterval");
+		if(userGroupServiceClearIntervalString!=null){
+			try {
+				userGroupServiceClearInterval = Long.parseLong(userGroupServiceClearIntervalString);
+			} catch (NumberFormatException e) {
+				LOGGER.warning("Context parameter geoserver-sec-drupal.userGroupServiceClearInterval is invalidly set. Use a Java long to provide an interval given in milliseconds.");
+			}
+		}
 		timer.scheduleAtFixedRate(new TimerTask() {
 			@Override
 			public void run() {
@@ -92,7 +102,7 @@ public class DrupalRoleService implements GeoServerRoleService {
 					e.printStackTrace();
 				}
 			}
-		}, 5000, 5000);
+		}, userGroupServiceClearInterval, userGroupServiceClearInterval);
 	}
 
 	public boolean canCreateStore() {
