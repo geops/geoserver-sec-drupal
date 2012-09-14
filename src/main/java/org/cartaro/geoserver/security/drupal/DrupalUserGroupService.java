@@ -37,6 +37,11 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 	 */
 	private static final GeoServerRole INSTALLATION_ADMINISTRATOR = new GeoServerRole("INSTALLATION_ADMINISTRATOR");
 	
+	/**
+	 * Denotes Drupal root users which are allowed to do everything. They have uid=1 in table users.
+	 */
+	private static final GeoServerRole DRUPAL_ROOT_ROLE = new GeoServerRole("administrator");
+	
 	private Set<UserGroupLoadedListener> listeners = Collections
 			.synchronizedSet(new HashSet<UserGroupLoadedListener>());
 	private DrupalDatabaseConnector connector;
@@ -193,6 +198,14 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 								new GeoServerRole(rs.getString("name")))
 								.getAuthority());
 			}
+			
+			if(DRUPAL_ROOT_ROLE.equals(role)){
+				// id=1 means administrative privileges in Drupal
+				rs = connector.getResultSet("select name from users where uid=1");
+				if(rs.next()){
+					userNames.add(connector.addInstancePrefix(rs.getString("name")));
+				}
+			}
 		} catch (SQLException e) {
 			throw new IOException(e);
 		}
@@ -218,6 +231,13 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 			if(connector.isDrupalCurrentlyInstalling()){
 				roles.add(connector.addInstancePrefix(INSTALLATION_ADMINISTRATOR));
 			}
+			
+			// id=1 means administrative privileges in Drupal
+			ResultSet rsAdmin = connector.getResultSet("select uid=1 as admin from users where name=?", connector.stripInstancePrefix(username));
+			rsAdmin.next();
+			if(rsAdmin.getBoolean("admin")){
+				roles.add(connector.addInstancePrefix(DRUPAL_ROOT_ROLE));
+			}
 		} catch (SQLException e) {
 			throw new IOException(e);
 		}
@@ -226,6 +246,8 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 
 	public SortedSet<GeoServerRole> getRoles() throws IOException {
 		TreeSet<GeoServerRole> foundRoles = new TreeSet<GeoServerRole>();
+		foundRoles.add(connector.addInstancePrefix(DRUPAL_ROOT_ROLE));
+		
 		ResultSet roles;
 		try {
 			roles = connector.getResultSet("select name from role");
@@ -261,6 +283,9 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 		if(connector.isDrupalCurrentlyInstalling()){
 			foundRoles.add(connector.addInstancePrefix(INSTALLATION_ADMINISTRATOR));
 		}
+		
+		// Add Drupal root user
+		foundRoles.add(connector.addInstancePrefix(DRUPAL_ROOT_ROLE));
 
 		// Add global admin as admin since GeoServer assumes everybody is admin
 		// when no admin was set
