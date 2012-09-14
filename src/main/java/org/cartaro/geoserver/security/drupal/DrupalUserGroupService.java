@@ -12,7 +12,6 @@ import java.util.logging.Logger;
 
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.LayerInfo;
-import org.geoserver.catalog.MetadataLinkInfo;
 import org.geoserver.security.AccessMode;
 import org.geoserver.security.GeoServerUserGroupService;
 import org.geoserver.security.GeoServerUserGroupStore;
@@ -271,7 +270,7 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 		ResultSet adminRoleNames = connector
 				.getResultSet("select role.name "
 						+ "from role_permission join role using(rid) "
-						+ "where permission='administer geoserver' and module='geoserver_ui'");
+						+ "where permission='administer geoserver' and module='geoserver'");
 
 		TreeSet<GeoServerRole> foundRoles = new TreeSet<GeoServerRole>();
 		while (adminRoleNames.next()) {
@@ -294,6 +293,12 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 		return Collections.unmodifiableSortedSet(foundRoles);
 	}
 
+	/**
+	 * Build read and write rules for all layers in the workspace used by a Drupal instance
+	 * @param rawCatalog
+	 * @return Read and write access rules within workspace 
+	 * @throws SQLException
+	 */
 	public HashSet<DataAccessRule> getLayerAccessRules(Catalog rawCatalog) throws SQLException {
 		LOGGER.info("Injected: getLayerAccessRules");
 		HashSet<DataAccessRule> layerAccessRules = new HashSet<DataAccessRule>();
@@ -305,40 +310,22 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 			if(workspaceName.equals(this.getName())){
 				LOGGER.info(layer.getResource().getStore().getWorkspace().getName());
 				LOGGER.info(layer.getName());
-				for(MetadataLinkInfo link:layer.getResource().getMetadataLinks()){
-					LOGGER.info(" format:"+link.getType());
-					LOGGER.info(" type"+link.getMetadataType()+" content: "+link.getContent());
-					String format = link.getType();
-					String type = link.getMetadataType();
-					String url = link.getContent();
-					if("other".equals(type) && "application/x-drupal-source".equals(format)){
-						// Last fragment of URL gives Drupal content type that provides a layer's data
-						String source = url.substring(url.lastIndexOf("/")+1);
-						LOGGER.info("joining using source URL: "+source);
-						
-						ResultSet viewPermissions = connector.getResultSet("select array_agg(role.name) as roles " +
-								"from field_config_instance " +
-								"join role_permission on ('view any '||field_config_instance.bundle||' content'=role_permission.permission and role_permission.module='nodetype_access') " +
-								"join role using(rid) " +
-								"where ?=field_config_instance.entity_type||'.'||field_config_instance.bundle||'.'||field_config_instance.field_name " +
-								"having array_agg(role.name) is not null", source);
-						LOGGER.info("granting read permission for "+this.getName()+" "+layer.getName());
-						while(viewPermissions.next()){
-							layerAccessRules.add(buildDataAccessRule(layer.getName(),(String[]) viewPermissions.getArray("roles").getArray(), AccessMode.READ));
-						}
-						
-						ResultSet createEditDeletePermissions = connector.getResultSet("select array_agg(roles) as roles from (" +
-								"select distinct role.name as roles "+
-								"from field_config_instance " +
-								"join role_permission on ('create '||field_config_instance.bundle||' content'=role_permission.permission or 'edit any '||field_config_instance.bundle||' content'=role_permission.permission or 'delete any '||field_config_instance.bundle||' content'=role_permission.permission) and role_permission.module=field_config_instance.entity_type " +
-								"join role using(rid) " +
-								"where ?=field_config_instance.entity_type||'.'||field_config_instance.bundle||'.'||field_config_instance.field_name) distinct_roles " +
-								"having array_agg(roles) is not null", source);
-						LOGGER.info("granting write permission for "+this.getName()+" "+layer.getName());
-						while(createEditDeletePermissions.next()){
-							layerAccessRules.add(buildDataAccessRule(layer.getName(), (String[]) createEditDeletePermissions.getArray("roles").getArray(), AccessMode.WRITE));
-						}
-					}
+				String layerPermissionQuery = "select array_agg(role.name) as roles " +
+						"from role " +
+						"join role_permission using(rid) " +
+						"where permission=? and module='geoserver' " +
+						"having array_agg(role.name) is not null";
+				
+				ResultSet viewPermissions = connector.getResultSet(layerPermissionQuery, "read "+layer.getName());
+				LOGGER.info("granting read permission for "+this.getName()+" "+layer.getName());
+				while(viewPermissions.next()){
+					layerAccessRules.add(buildDataAccessRule(layer.getName(),(String[]) viewPermissions.getArray("roles").getArray(), AccessMode.READ));
+				}
+				
+				ResultSet createEditDeletePermissions = connector.getResultSet(layerPermissionQuery, "write "+layer.getName());
+				LOGGER.info("granting write permission for "+this.getName()+" "+layer.getName());
+				while(createEditDeletePermissions.next()){
+					layerAccessRules.add(buildDataAccessRule(layer.getName(), (String[]) createEditDeletePermissions.getArray("roles").getArray(), AccessMode.WRITE));
 				}
 			}
 		}
