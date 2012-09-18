@@ -112,6 +112,7 @@ public class DrupalAuthenticationProvider extends
 					SortedSet<GeoServerRole> serviceAssignedRoles = userGroupService.getRolesForUser(token.getPrincipal().toString());
 					roles.addAll(serviceAssignedRoles);
 				} catch (IOException e) {
+					LOGGER.log(Level.SEVERE, "Failed to get roles for user.", e);
 					return null;
 				}
 
