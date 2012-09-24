@@ -29,7 +29,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 		implements GeoServerUserGroupService {
-	protected static Logger LOGGER = org.geotools.util.logging.Logging.getLogger(DrupalUserGroupService.class);
+	protected static Logger LOGGER = org.geotools.util.logging.Logging.getLogger("org.geoserver.security");
 	
 	/**
 	 * Role that is used to grant workspace-wide access during installation of a Drupal instance.

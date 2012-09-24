@@ -41,7 +41,7 @@ import org.geotools.util.logging.Logging;
  */
 public class DrupalRoleService implements GeoServerRoleService {
 	protected static Logger LOGGER = Logging
-			.getLogger(DrupalRoleService.class);
+			.getLogger("org.geoserver.security");
 
 	private String name;
 	private GeoServerSecurityManager securityManager;

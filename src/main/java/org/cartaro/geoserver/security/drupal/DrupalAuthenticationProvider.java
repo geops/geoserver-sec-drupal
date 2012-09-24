@@ -27,7 +27,7 @@ import org.springframework.security.core.GrantedAuthority;
  */
 public class DrupalAuthenticationProvider extends
 		GeoServerAuthenticationProvider {
-	protected static Logger LOGGER = Logging.getLogger(DrupalAuthenticationProvider.class);
+	protected static Logger LOGGER = Logging.getLogger("org.geoserver.security");
 	
 	private static final String AUTHENTICATED_USER = "authenticated user";
 	private static final int DRUPAL_HASH_LENGTH = 55;
@@ -119,6 +119,11 @@ public class DrupalAuthenticationProvider extends
 				UsernamePasswordAuthenticationToken result = new UsernamePasswordAuthenticationToken(
 						token.getPrincipal(), token.getCredentials(), roles);
 				result.setDetails(token.getDetails());
+				LOGGER.info("Instructing GeoServer to accept user: "+token.getPrincipal());
+				LOGGER.info("Its roles:");
+				for(GrantedAuthority role: roles){
+					LOGGER.info(role.getAuthority());
+				}
 				return result;
 			}
 			LOGGER.info("User " + token.getPrincipal() + " failed to authorize");

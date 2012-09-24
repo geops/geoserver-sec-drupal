@@ -18,7 +18,7 @@ import org.geotools.util.logging.Logging;
  * Abstracts access to a Drupal database
  */
 public class DrupalDatabaseConnector {
-	static final Logger LOGGER = Logging.getLogger(DrupalDatabaseConnector.class);
+	static final Logger LOGGER = Logging.getLogger("org.geoserver.security");
 	
 	private Connection connection;
 	

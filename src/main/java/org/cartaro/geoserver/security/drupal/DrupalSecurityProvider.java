@@ -14,7 +14,7 @@ import org.geotools.util.logging.Logging;
 
 public class DrupalSecurityProvider extends GeoServerSecurityProvider {
 
-    static final Logger LOGGER = Logging.getLogger(DrupalSecurityProvider.class);
+    static final Logger LOGGER = Logging.getLogger("org.geoserver.security");
 
     GeoServerSecurityManager securityManager;
 
