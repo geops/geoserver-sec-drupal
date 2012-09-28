@@ -116,7 +116,8 @@ public class DrupalDatabaseConnector {
 	 * @throws SQLException
 	 */
 	public boolean isDrupalCurrentlyInstalling() throws SQLException{
-		ResultSet drupalCurrentlyInstallingSet = this.getResultSet("select value::text='s:23:\"install_profile_modules\";' as install_profile_modules " +
+		// Convert using convert_from to get consistent behavior in Postgres 8 and 9
+		ResultSet drupalCurrentlyInstallingSet = this.getResultSet("select convert_from(value, 'UTF-8')='s:23:\"install_profile_modules\";' as install_profile_modules " +
 				"from variable where name='install_task'");
 		boolean drupalCurrentlyInstalling = drupalCurrentlyInstallingSet.next() && drupalCurrentlyInstallingSet.getBoolean("install_profile_modules");
 		return drupalCurrentlyInstalling;
