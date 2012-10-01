@@ -7,7 +7,7 @@
 	<groupId>org.cartaro.geoserver.security</groupId>
 	<artifactId>geoserver-sec-drupal</artifactId>
 	<packaging>jar</packaging>
-	<version>2.2-SNAPSHOT</version>
+	<version>2.2</version>
 	<name>GeoServer Security Module to bind to Drupal users of Cartaro instances</name>
 
 	<description>Bind GeoServer to Drupal instance by letting GeoServer access Drupal's database to verify permissions.
@@ -48,7 +48,7 @@ This is an plugin for GeoServer and not part of it.</description>
 		<dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.5</version>
+            <version>4.8.2</version>
             <scope>test</scope>
         </dependency>
 	</dependencies>

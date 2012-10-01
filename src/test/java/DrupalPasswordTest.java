@@ -8,7 +8,7 @@ import org.cartaro.geoserver.security.drupal.DrupalSecurityServiceConfig;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-public class DrupalPassword {
+public class DrupalPasswordTest {
 
 	@Test
 	public void testPasswordBase64Encode() throws DecoderException {
