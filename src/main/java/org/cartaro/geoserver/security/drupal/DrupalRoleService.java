@@ -163,9 +163,11 @@ public class DrupalRoleService implements GeoServerRoleService {
 		// Add role for instance user
 		TreeSet<GeoServerRole> roles = new TreeSet<GeoServerRole>();
 		for (DrupalUserGroupService service : userGroupServices) {
-			SortedSet<GeoServerRole> serviceUserNames = service
-					.getRolesForUser(username);
-			roles.addAll(serviceUserNames);
+			if (service.isResponsibleForUser(username)) {
+				SortedSet<GeoServerRole> serviceUserNames = service
+						.getRolesForUser(username);
+				roles.addAll(serviceUserNames);
+			}
 		}
 		return Collections.unmodifiableSortedSet(roles);
 	}

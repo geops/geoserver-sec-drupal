@@ -349,4 +349,12 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 		}
 		return new DataAccessRule(this.getName(), layerName, mode, roleNames);
 	}
+	
+	/**
+	 * @param username
+	 * @return True if this instance provided the user and is thus responsible for determining its roles.
+	 */
+	public boolean isResponsibleForUser(String username){
+		return connector.hasInstancePrefix(username);
+	}
 }

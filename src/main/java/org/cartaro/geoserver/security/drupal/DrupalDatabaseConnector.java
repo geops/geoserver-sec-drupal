@@ -96,10 +96,18 @@ public class DrupalDatabaseConnector {
 	 * @throws IllegalArgumentException When prefix can't be stripped because it is not there
 	 */
 	public String stripInstancePrefix(String prefixed) {
-		if(!prefixed.startsWith(instancePrefix)){
+		if(!hasInstancePrefix(prefixed)){
 			throw new IllegalArgumentException("Does not have prefix to be stripped: "+prefixed);
 		}
 		return prefixed.substring(instancePrefix.length());
+	}
+	
+	/**
+	 * @param prefixed Text to check for sharing prefix with this instance's connection
+	 * @return True if prefixes are shared
+	 */
+	public boolean hasInstancePrefix(String prefixed){
+		return prefixed.startsWith(instancePrefix);
 	}
 
 	/**
