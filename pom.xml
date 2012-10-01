@@ -14,13 +14,33 @@
 
 This is an plugin for GeoServer and not part of it.</description>
 	<url>https://github.com/geops/geoserver-sec-drupal</url>
+	<properties>
+		<geoserver.version>2.2</geoserver.version>
+	</properties>
 	<build>
+		<resources>
+			<resource>
+				<filtering>false</filtering>
+				<directory>src/main/resources</directory>
+			</resource>
+			<resource>
+				<filtering>false</filtering>
+				<directory>src/main/java</directory>
+				<includes>
+					<include>**</include>
+				</includes>
+				<excludes>
+					<exclude>**/*.java</exclude>
+				</excludes>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>2.5.1</version>
 				<configuration>
+					<!-- Set Java version -->
 					<source>1.5</source>
 					<target>1.5</target>
 				</configuration>
@@ -31,35 +51,35 @@ This is an plugin for GeoServer and not part of it.</description>
 		<dependency>
 			<groupId>org.geoserver</groupId>
 			<artifactId>main</artifactId>
-			<version>${project.version}</version>
+			<version>${geoserver.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.geoserver.web</groupId>
 			<artifactId>web-security</artifactId>
-			<version>${project.version}</version>
+			<version>${geoserver.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.geoserver</groupId>
 			<artifactId>main</artifactId>
-			<version>${project.version}</version>
+			<version>${geoserver.version}</version>
 			<classifier>tests</classifier>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.8.2</version>
-            <scope>test</scope>
-        </dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.8.2</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
-    <repositories>
-        <repository>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <id>opengeo</id>
-            <name>OpenGeo Maven Repository</name>
-            <url>http://repo.opengeo.org</url>
-        </repository>
-    </repositories>
+	<repositories>
+		<repository>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+			<id>opengeo</id>
+			<name>OpenGeo Maven Repository</name>
+			<url>http://repo.opengeo.org</url>
+		</repository>
+	</repositories>
 </project>
