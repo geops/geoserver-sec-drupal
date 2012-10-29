@@ -15,7 +15,10 @@ import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.codec.binary.Hex;
+import org.geoserver.config.GeoServer;
+import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.security.GeoServerAuthenticationProvider;
+import org.geoserver.security.GeoServerSecurityManager;
 import org.geoserver.security.impl.GeoServerRole;
 import org.geotools.util.logging.Logging;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -34,17 +37,24 @@ public class DrupalAuthenticationProvider extends
 	private DrupalDatabaseConnector connector;
 	private DrupalUserGroupService userGroupService;
 
-	public DrupalAuthenticationProvider(DrupalSecurityServiceConfig config) {
-
-		RuntimeException ex = new RuntimeException(
-				"Cannot find credential store for " + config.getName());
+	public DrupalAuthenticationProvider() {
+		userGroupService = new DrupalUserGroupService();
+	}
+	
+	@Override
+	public void initializeFromConfig(org.geoserver.security.config.SecurityNamedServiceConfig config) throws IOException {
+		LOGGER.info("Reloading configuration "+config.getName());
+		
+		if(connector!=null){
+			connector.close();
+		}
 		try {
-			connector = new DrupalDatabaseConnector(config);
+			connector = new DrupalDatabaseConnector((DrupalSecurityServiceConfig) config);
 		} catch (ClassNotFoundException e) {
-			throw ex;
+			throw new RuntimeException(
+					"Cannot find credential store for " + config.getName());
 		}
 		
-		userGroupService = new DrupalUserGroupService();
 		try {
 			userGroupService.initializeFromConfig(config);
 		} catch (IOException e) {

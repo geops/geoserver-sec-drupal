@@ -29,4 +29,7 @@
 		<property name="titleKey" value="DrupalAuthProviderPanel.title" />
 		<property name="descriptionKey" value="DrupalAuthProviderPanel.description" />
 	</bean>
+	
+	<!-- Reloads connections to Drupal databases whenever GeoServer is to be reloaded. -->
+	<bean id="authenticationProviderReloader" class="org.cartaro.geoserver.security.drupal.LifecycleHandler"/>
 </beans>

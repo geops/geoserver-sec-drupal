@@ -42,7 +42,7 @@ public class DrupalSecurityProvider extends GeoServerSecurityProvider {
     @Override
     public GeoServerAuthenticationProvider createAuthenticationProvider(SecurityNamedServiceConfig config) {
     	LOGGER.info("Create Drupal Auth provider");
-        return new DrupalAuthenticationProvider((DrupalSecurityServiceConfig)config);
+        return new DrupalAuthenticationProvider();
     }
     
     @Override

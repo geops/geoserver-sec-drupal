@@ -27,6 +27,8 @@ public class DrupalDatabaseConnector {
 	 */
 	private String instancePrefix;
 
+	private Timer timer;
+
 	/**
 	 * Binds an instance to a Drupal database and repeatedly retries if connection fails.
 	 * @param drupalConfig
@@ -42,18 +44,39 @@ public class DrupalDatabaseConnector {
 		} catch (SQLException e){
 			// Try reconnecting of connection failed
 			LOGGER.log(Level.WARNING, "Cannot connect to database of configuration "+drupalConfig.getName()+". Retrying in 5000ms interval.", e);
-			final Timer timer = new Timer();
+			timer = new Timer();
 			timer.scheduleAtFixedRate(new TimerTask() {
 				@Override
 				public void run() {
 					try {
 						DrupalDatabaseConnector.this.connection = DrupalDatabaseConnector.this.accquireConnection(drupalConfig);
 						timer.cancel();
+						timer = null;
+						LOGGER.log(Level.INFO, "Finally connected to database of configuration "+drupalConfig.getName());
 					} catch (SQLException e) {
 						LOGGER.log(Level.WARNING, "Cannot connect to database of configuration "+drupalConfig.getName(), e);
 					}
 				}
 			}, 5000, 5000);
+		}
+	}
+	
+	/**
+	 * Closes database connection if any is still open.
+	 * Subsequent simply won't have any effect.
+	 */
+	public void close(){
+		if(timer!=null){
+			timer.cancel();
+			timer = null;
+			LOGGER.log(Level.WARNING, "Don't try failing connection attempts to database of configuration "+instancePrefix+" any longer.");
+		}
+		if(this.connection!=null){
+			try {
+				this.connection.close();
+			} catch (SQLException e) {
+				LOGGER.log(Level.WARNING, "Could not close database connection of "+instancePrefix, e);
+			}
 		}
 	}
 

@@ -62,47 +62,6 @@ public class DrupalRoleService implements GeoServerRoleService {
 			}
 		}
 		LOGGER.info("Merging Drupal role services: " + userGroupServices.size());
-		
-		// Regularly clear GeoServer's cache for user and group services.
-		// This is required that GeoServer requests users thus their roles, too, when needed. If
-		// the cache is there changes to users and roles in Drupal won't be reflected in GeoServer.
-		// Please change to a more suited implementation as soon as a more reliable way of doing this
-		// is available!
-		final Timer timer = new Timer();
-		// Default interval is 5000ms but can be adjusted by setting geoserver-sec-drupal.userGroupServiceClearInterval context parameter
-		long userGroupServiceClearInterval = 5000;
-		String userGroupServiceClearIntervalString = GeoServerExtensions.getProperty("geoserver-sec-drupal.userGroupServiceClearInterval");
-		if(userGroupServiceClearIntervalString!=null){
-			try {
-				userGroupServiceClearInterval = Long.parseLong(userGroupServiceClearIntervalString);
-			} catch (NumberFormatException e) {
-				LOGGER.warning("Context parameter geoserver-sec-drupal.userGroupServiceClearInterval is invalidly set. Use a Java long to provide an interval given in milliseconds.");
-			}
-		}
-		timer.scheduleAtFixedRate(new TimerTask() {
-			@Override
-			public void run() {
-				GeoServerSecurityManager manager = GeoServerExtensions
-						.bean(GeoServerSecurityManager.class);
-				try {
-					LOGGER.info("Trying to clear GeoServer's cache for user and group services.");
-					// Access the cache via reflection to override access modifiers
-					Field f = GeoServerSecurityManager.class.getDeclaredField("userGroupServices");
-					f.setAccessible(true);
-					ConcurrentHashMap<String, GeoServerUserGroupService> userGroupServices = (ConcurrentHashMap<String, GeoServerUserGroupService>) f.get(manager);
-					userGroupServices.clear();
-					LOGGER.info("Clearing GeoServer's cache for user and group services succeeded.");
-				} catch (SecurityException e) {
-					e.printStackTrace();
-				} catch (NoSuchFieldException e) {
-					e.printStackTrace();
-				} catch (IllegalArgumentException e) {
-					e.printStackTrace();
-				} catch (IllegalAccessException e) {
-					e.printStackTrace();
-				}
-			}
-		}, userGroupServiceClearInterval, userGroupServiceClearInterval);
 	}
 
 	public boolean canCreateStore() {

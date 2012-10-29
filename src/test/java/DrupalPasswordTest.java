@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -30,8 +31,13 @@ public class DrupalPasswordTest {
 		config.setDatabaseUser("drupal-7");
 		config.setDatabasePassword("drupal-7");
 		
-		DrupalAuthenticationProvider drupalAuthenticationProvider = new DrupalAuthenticationProvider(
-				config);
+		DrupalAuthenticationProvider drupalAuthenticationProvider = new DrupalAuthenticationProvider();
+		try {
+			drupalAuthenticationProvider.initializeFromConfig(config);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return drupalAuthenticationProvider;
 	}
 

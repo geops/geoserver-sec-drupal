@@ -54,6 +54,10 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 		DrupalSecurityServiceConfig drupalConfig = (DrupalSecurityServiceConfig) config;
 		passwordEncoderName = drupalConfig.getPasswordEncoderName();
 		passwordValidatorName = drupalConfig.getPasswordPolicyName();
+		
+		if(connector!=null){
+			connector.close();
+		}
 		try {
 			connector = new DrupalDatabaseConnector(drupalConfig);
 		} catch (ClassNotFoundException e) {
