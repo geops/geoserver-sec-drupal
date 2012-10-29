@@ -236,8 +236,7 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 			} else {
 				// id=1 means administrative privileges in Drupal
 				ResultSet rsAdmin = connector.getResultSet("select uid=1 as admin from users where name=?", connector.stripInstancePrefix(username));
-				rsAdmin.next();
-				if(rsAdmin.getBoolean("admin")){
+				if(rsAdmin.next() && rsAdmin.getBoolean("admin")){
 					roles.add(connector.addInstancePrefix(DRUPAL_ROOT_ROLE));
 				}
 			}
