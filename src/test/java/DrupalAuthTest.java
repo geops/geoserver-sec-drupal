@@ -12,6 +12,19 @@ public class DrupalAuthTest {
 		config.setUsePrefix(true);
 		config.setName("i3");
 		DrupalDatabaseConnector connector = new DrupalDatabaseConnector(config);
-		assertEquals("admin3", connector.stripInstancePrefix("i3:admin3"));
+		assertEquals("admin3", connector.stripInstancePrefix("i3_admin3"));
+	}
+	
+	/**
+	 * If prefixing is enabled, the prefix should be the instance name plus an underscore.
+	 */
+	@Test
+	public void testPrefixing() {
+		DrupalSecurityServiceConfig config = new DrupalSecurityServiceConfig();
+		config.setName("test345");
+		assertEquals("", config.getDrupalInstancePrefix());
+		
+		config.setUsePrefix(true);
+		assertEquals("test345_", config.getDrupalInstancePrefix());
 	}
 }

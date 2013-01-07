@@ -125,7 +125,9 @@ public class DrupalSecurityServiceConfig extends BaseSecurityNamedServiceConfig
 	 */
 	public String getDrupalInstancePrefix() {
 		if (isUsePrefix()) {
-			return getName() + ":";
+			return getName() +
+					// Add separator so that user has an indication where instance ends and user name starts
+					"_";
 		}
 		return "";
 	}
