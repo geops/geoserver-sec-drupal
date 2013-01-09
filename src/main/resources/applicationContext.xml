@@ -29,7 +29,20 @@
 		<property name="titleKey" value="DrupalAuthProviderPanel.title" />
 		<property name="descriptionKey" value="DrupalAuthProviderPanel.description" />
 	</bean>
-	
-	<!-- Reloads connections to Drupal databases whenever GeoServer is to be reloaded. -->
-	<bean id="authenticationProviderReloader" class="org.cartaro.geoserver.security.drupal.LifecycleHandler"/>
+
+	<!-- Reloads connections to Drupal databases whenever GeoServer is to be 
+		reloaded. -->
+	<bean id="authenticationProviderReloader" class="org.cartaro.geoserver.security.drupal.LifecycleHandler" />
+
+	<bean id="cartaroCookieService" class="org.cartaro.geoserver.Cookie"></bean>
+	<bean id="cartaroCookieService-1.0.0" class="org.geoserver.platform.Service">
+		<constructor-arg index="0" value="cookie" />
+		<constructor-arg index="1" ref="cartaroCookieService" />
+		<constructor-arg index="2" value="1.0.0" />
+		<constructor-arg index="3">
+			<list>
+				<value>setCookie</value>
+			</list>
+		</constructor-arg>
+	</bean>
 </beans>
