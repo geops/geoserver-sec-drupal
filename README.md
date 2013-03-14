@@ -2,7 +2,7 @@ Drupal as user provider for GeoServer
 =====================================
 This GeoServer extension allows to use any number of Drupal instances as user providers. The extension is part of the geospatial CMS Cartaro. See http://cartaro.org for details.
 
-[Downloads](http://dl.geops.de/ole)
+[Download binaries](http://dl.geops.de/geoserver-sec-drupal/)
 
 Installation
 ============
