@@ -259,6 +259,10 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 			}
 		} catch (SQLException e) {
 			throw new IOException(e);
+		} catch (NullPointerException e){
+			// Ignore missing connection here and return empty user list.
+			// Keeps service editable in GUI despite wrongly configured connections.
+			// Wrong configurations have been logged by failing connection acquire already.
 		}
 		return Collections.unmodifiableSortedSet(foundRoles);
 	}

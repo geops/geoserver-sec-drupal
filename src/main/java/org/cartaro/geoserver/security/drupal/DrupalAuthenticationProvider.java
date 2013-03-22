@@ -15,10 +15,7 @@ import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.codec.binary.Hex;
-import org.geoserver.config.GeoServer;
-import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.security.GeoServerAuthenticationProvider;
-import org.geoserver.security.GeoServerSecurityManager;
 import org.geoserver.security.impl.GeoServerRole;
 import org.geotools.util.logging.Logging;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -30,8 +27,9 @@ import org.springframework.security.core.GrantedAuthority;
  */
 public class DrupalAuthenticationProvider extends
 		GeoServerAuthenticationProvider {
-	protected static Logger LOGGER = Logging.getLogger("org.geoserver.security");
-	
+	protected static Logger LOGGER = Logging
+			.getLogger("org.geoserver.security");
+
 	private static final String AUTHENTICATED_USER = "authenticated user";
 	private static final int DRUPAL_HASH_LENGTH = 55;
 	private DrupalDatabaseConnector connector;
@@ -40,21 +38,24 @@ public class DrupalAuthenticationProvider extends
 	public DrupalAuthenticationProvider() {
 		userGroupService = new DrupalUserGroupService();
 	}
-	
+
 	@Override
-	public void initializeFromConfig(org.geoserver.security.config.SecurityNamedServiceConfig config) throws IOException {
-		LOGGER.info("Reloading configuration "+config.getName());
-		
-		if(connector!=null){
+	public void initializeFromConfig(
+			org.geoserver.security.config.SecurityNamedServiceConfig config)
+			throws IOException {
+		LOGGER.info("Reloading configuration " + config.getName());
+
+		if (connector != null) {
 			connector.close();
 		}
 		try {
-			connector = new DrupalDatabaseConnector((DrupalSecurityServiceConfig) config);
+			connector = new DrupalDatabaseConnector(
+					(DrupalSecurityServiceConfig) config);
 		} catch (ClassNotFoundException e) {
-			throw new RuntimeException(
-					"Cannot find credential store for " + config.getName());
+			throw new RuntimeException("Cannot find credential store for "
+					+ config.getName());
 		}
-		
+
 		try {
 			userGroupService.initializeFromConfig(config);
 		} catch (IOException e) {
@@ -72,32 +73,41 @@ public class DrupalAuthenticationProvider extends
 	@Override
 	public Authentication authenticate(Authentication authentication,
 			HttpServletRequest request) {
-		
-		UsernamePasswordAuthenticationToken token = (UsernamePasswordAuthenticationToken) authentication;
+
+		final UsernamePasswordAuthenticationToken token = (UsernamePasswordAuthenticationToken) authentication;
 
 		LOGGER.info("Drupal user tries to log in:" + token.getPrincipal()
 				+ " pw:" + token.getCredentials());
 		try {
-			Object password = token.getCredentials();
+			final Object passwordRaw = token.getCredentials();
+			// Trim whitespace from the password because Drupal does this, too.
+			final String password = ((String) (passwordRaw == null ? ""
+					: passwordRaw)).trim();
+			
 			String drupalUserName;
 			try {
 				drupalUserName = connector.stripInstancePrefix(token
 						.getPrincipal().toString());
-				LOGGER.info("Stripped user name: "+drupalUserName);
+				LOGGER.info("Stripped user name: " + drupalUserName);
 			} catch (IllegalArgumentException e) {
-				// Prefix mismatch. State that this instance is not responsible for authenticating in user.
+				// Prefix mismatch. State that this instance is not responsible
+				// for authenticating user.
 				return null;
 			}
 			boolean credentialsValid;
-			
-			boolean drupalCurrentlyInstalling = connector.isDrupalCurrentlyInstalling();
-			LOGGER.info("Drupal currently installing:"+drupalCurrentlyInstalling);
-			
-			if(drupalCurrentlyInstalling){
-				// Grant access to any Drupal instances that are currently being installed
+
+			boolean drupalCurrentlyInstalling = connector
+					.isDrupalCurrentlyInstalling();
+			LOGGER.info("Drupal currently installing:"
+					+ drupalCurrentlyInstalling);
+
+			if (drupalCurrentlyInstalling) {
+				// Grant access to any Drupal instances that are currently being
+				// installed
 				credentialsValid = true;
 			} else {
-				ResultSet rs = connector.getResultSet("select pass from users where name=? and status=1",
+				ResultSet rs = connector.getResultSet(
+						"select pass from users where name=? and status=1",
 						drupalUserName);
 				boolean userFound = rs.next();
 				if (userFound == false) {
@@ -107,19 +117,20 @@ public class DrupalAuthenticationProvider extends
 					return null;
 				}
 				String passwordHash = rs.getString("pass");
-				credentialsValid = drupalUserCheckPassword(
-						(String) password, passwordHash);
+				credentialsValid = drupalUserCheckPassword((String) password,
+						passwordHash);
 			}
 			if (credentialsValid) {
 				LOGGER.info("User " + token.getPrincipal() + " authorized");
-				
+
 				// Authorize user by setting its roles
 				Collection<GrantedAuthority> roles = new ArrayList<GrantedAuthority>();
 				roles.add(new GeoServerRole(connector
 						.addInstancePrefix(AUTHENTICATED_USER)));
 				// Add roles that have been assigned in external Drupal instance
 				try {
-					SortedSet<GeoServerRole> serviceAssignedRoles = userGroupService.getRolesForUser(token.getPrincipal().toString());
+					SortedSet<GeoServerRole> serviceAssignedRoles = userGroupService
+							.getRolesForUser(token.getPrincipal().toString());
 					roles.addAll(serviceAssignedRoles);
 				} catch (IOException e) {
 					LOGGER.log(Level.SEVERE, "Failed to get roles for user.", e);
@@ -127,11 +138,12 @@ public class DrupalAuthenticationProvider extends
 				}
 
 				UsernamePasswordAuthenticationToken result = new UsernamePasswordAuthenticationToken(
-						token.getPrincipal(), token.getCredentials(), roles);
+						token.getPrincipal(), password, roles);
 				result.setDetails(token.getDetails());
-				LOGGER.info("Instructing GeoServer to accept user: "+token.getPrincipal());
+				LOGGER.info("Instructing GeoServer to accept user: "
+						+ token.getPrincipal());
 				LOGGER.info("Its roles:");
-				for(GrantedAuthority role: roles){
+				for (GrantedAuthority role : roles) {
 					LOGGER.info(role.getAuthority());
 				}
 				return result;
@@ -219,6 +231,7 @@ public class DrupalAuthenticationProvider extends
 
 	/**
 	 * Concatenates 2 byte arrays
+	 * 
 	 * @param first
 	 * @param second
 	 * @return All elements of first followed by all elements of second
@@ -266,7 +279,8 @@ public class DrupalAuthenticationProvider extends
 	}
 
 	/**
-	 * @param a Java byte representation
+	 * @param a
+	 *            Java byte representation
 	 * @return PHP byte representation (character value as in a PHP string)
 	 */
 	private int toPhpCharCode(byte a) {
