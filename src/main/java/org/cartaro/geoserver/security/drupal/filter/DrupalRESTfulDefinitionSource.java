@@ -24,6 +24,13 @@ public class DrupalRESTfulDefinitionSource extends RESTfulDefinitionSource {
 		super(dao);
 		this.dao = dao;
 	}
+	
+	/**
+	 * Ensure GeoServer builds its rules for permission checks anew on next use.
+	 */
+	public void invalidateRulesCache(){
+		this.dao.reload();
+	}
 
 	/**
 	 * Adds to given mappings to be used for controlling access. Additionally

@@ -151,4 +151,16 @@ public class DrupalRESTAccessRuleDAO extends RESTAccessRuleDAO {
 
 		return rules;
 	}
+	
+	@Override
+	public long getLastModified() {
+		// Refresh rules no more than every 5s.
+		return System.currentTimeMillis()/5000*5000;
+	}
+	
+	@Override
+	public boolean isModified() {
+		// Refresh always because there is currently no way for GeoServer to be notified about changes in Drupal.
+		return true;
+	}
 }

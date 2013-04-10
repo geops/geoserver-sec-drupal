@@ -50,4 +50,13 @@ public class DrupalDataAccessRuleDAO extends DataAccessRuleDAO {
 		
 		return rules;
 	}
+	
+	/**
+	 * Use current time to force reloading of permissions.
+	 */
+	@Override
+	public long getLastModified() {
+		// Refresh rules no more than every 5s.
+		return System.currentTimeMillis()/5000*5000;
+	}
 }

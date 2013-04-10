@@ -30,7 +30,6 @@ public class DrupalAuthenticationProvider extends
 	protected static Logger LOGGER = Logging
 			.getLogger("org.geoserver.security");
 
-	private static final String AUTHENTICATED_USER = "authenticated user";
 	private static final int DRUPAL_HASH_LENGTH = 55;
 	private DrupalDatabaseConnector connector;
 	private DrupalUserGroupService userGroupService;
@@ -125,8 +124,7 @@ public class DrupalAuthenticationProvider extends
 
 				// Authorize user by setting its roles
 				Collection<GrantedAuthority> roles = new ArrayList<GrantedAuthority>();
-				roles.add(new GeoServerRole(connector
-						.addInstancePrefix(AUTHENTICATED_USER)));
+				
 				// Add roles that have been assigned in external Drupal instance
 				try {
 					SortedSet<GeoServerRole> serviceAssignedRoles = userGroupService

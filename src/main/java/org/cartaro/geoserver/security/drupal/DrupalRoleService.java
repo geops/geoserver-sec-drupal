@@ -1,7 +1,6 @@
 package org.cartaro.geoserver.security.drupal;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -14,12 +13,11 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.TreeSet;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.cartaro.geoserver.security.drupal.filter.DrupalRESTfulDefinitionSource;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.impl.WorkspaceInfoImpl;
 import org.geoserver.platform.GeoServerExtensions;
@@ -28,6 +26,7 @@ import org.geoserver.security.GeoServerRoleService;
 import org.geoserver.security.GeoServerRoleStore;
 import org.geoserver.security.GeoServerSecurityManager;
 import org.geoserver.security.GeoServerUserGroupService;
+import org.geoserver.security.RESTfulDefinitionSource;
 import org.geoserver.security.config.SecurityNamedServiceConfig;
 import org.geoserver.security.event.RoleLoadedEvent;
 import org.geoserver.security.event.RoleLoadedListener;
@@ -47,21 +46,44 @@ public class DrupalRoleService implements GeoServerRoleService {
 	private GeoServerSecurityManager securityManager;
 	private Set<RoleLoadedListener> listeners = Collections
 			.synchronizedSet(new HashSet<RoleLoadedListener>());
-	private List<DrupalUserGroupService> userGroupServices = new ArrayList<DrupalUserGroupService>();
 
-	public void initializeFromConfig(SecurityNamedServiceConfig config)
-			throws IOException {
-		GeoServerSecurityManager manager = GeoServerExtensions
+	public void initializeFromConfig(SecurityNamedServiceConfig config) {
+	}
+
+	/**
+	 * @return All user group services that bind to a Drupal instance.
+	 */
+	private List<DrupalUserGroupService> getDrupalUserGroupServices() {
+		final List<DrupalUserGroupService> userGroupServices = new ArrayList<DrupalUserGroupService>();
+		
+		final GeoServerSecurityManager manager = GeoServerExtensions
 				.bean(GeoServerSecurityManager.class);
-		List<GeoServerUserGroupService> allUserGroupServices = manager
-				.loadUserGroupServices();
-		for (GeoServerUserGroupService userGroupService : allUserGroupServices) {
+		List<GeoServerUserGroupService> allUserGroupServices;
+		try {
+			allUserGroupServices = manager
+					.loadUserGroupServices();
+		} catch (IOException e) {
+			LOGGER.log(Level.INFO, "Could not read user group services. Drupal logins won't work.", e);
+			return userGroupServices;
+		}
+		
+		// Prevent GeoServer from caching the services' data because they change content without informing GeoServer.
+		RESTfulDefinitionSource restPaths = GeoServerExtensions.bean(RESTfulDefinitionSource.class);
+		if(restPaths instanceof DrupalRESTfulDefinitionSource){
+			DrupalRESTfulDefinitionSource drupalRestPaths = (DrupalRESTfulDefinitionSource) restPaths;
+			drupalRestPaths.invalidateRulesCache();
+		} else {
+			LOGGER.warning("Cannot update REST paths (access rules). Verify implementation of RESTfulDefinitionSource was overridden by applicationSecurityContextOverride.xml.");
+		}
+		
+		for (final GeoServerUserGroupService userGroupService : allUserGroupServices) {
 			if (userGroupService instanceof DrupalUserGroupService) {
-				DrupalUserGroupService drupalUserGroupService = (DrupalUserGroupService) userGroupService;
+				final DrupalUserGroupService drupalUserGroupService = (DrupalUserGroupService) userGroupService;
 				userGroupServices.add(drupalUserGroupService);
 			}
 		}
-		LOGGER.info("Merging Drupal role services: " + userGroupServices.size());
+		
+		return userGroupServices;
 	}
 
 	public boolean canCreateStore() {
@@ -107,7 +129,7 @@ public class DrupalRoleService implements GeoServerRoleService {
 	public SortedSet<String> getUserNamesForRole(GeoServerRole role)
 			throws IOException {
 		TreeSet<String> userNames = new TreeSet<String>();
-		for (DrupalUserGroupService service : userGroupServices) {
+		for (DrupalUserGroupService service : getDrupalUserGroupServices()) {
 			// Add all users of instance having the role
 			SortedSet<String> serviceUserNames = service
 					.getUserNamesForRole(role);
@@ -121,7 +143,7 @@ public class DrupalRoleService implements GeoServerRoleService {
 			throws IOException {
 		// Add role for instance user
 		TreeSet<GeoServerRole> roles = new TreeSet<GeoServerRole>();
-		for (DrupalUserGroupService service : userGroupServices) {
+		for (DrupalUserGroupService service : getDrupalUserGroupServices()) {
 			if (service.isResponsibleForUser(username)) {
 				SortedSet<GeoServerRole> serviceUserNames = service
 						.getRolesForUser(username);
@@ -139,7 +161,7 @@ public class DrupalRoleService implements GeoServerRoleService {
 
 	public SortedSet<GeoServerRole> getRoles() throws IOException {
 		TreeSet<GeoServerRole> foundRoles = new TreeSet<GeoServerRole>();
-		for (DrupalUserGroupService service : userGroupServices) {
+		for (DrupalUserGroupService service : getDrupalUserGroupServices()) {
 			SortedSet<GeoServerRole> serviceUserNames = service.getRoles();
 			foundRoles.addAll(serviceUserNames);
 		}
@@ -209,21 +231,24 @@ public class DrupalRoleService implements GeoServerRoleService {
 		return getRoles().size();
 	}
 
-	public Collection<? extends DataAccessRule> getLayerAccessRules(Catalog rawCatalog) throws IOException {
-		LOGGER.info("Injected: loading layer rules from "+userGroupServices.size()+" services");
+	public Collection<? extends DataAccessRule> getLayerAccessRules(
+			Catalog rawCatalog) throws IOException {
+		LOGGER.info("Injected: loading layer rules from "
+				+ getDrupalUserGroupServices().size() + " services");
 		HashSet<DataAccessRule> rules = new HashSet<DataAccessRule>();
-		for (DrupalUserGroupService service : userGroupServices) {
+		for (DrupalUserGroupService service : getDrupalUserGroupServices()) {
 			// Add workspace administrators
-			HashSet<String> adminNames = new HashSet<String>();			
+			HashSet<String> adminNames = new HashSet<String>();
 			try {
-				for(GeoServerRole admin:service.getWorkspaceAdministrators()){
+				for (GeoServerRole admin : service.getWorkspaceAdministrators()) {
 					adminNames.add(admin.getAuthority());
 				}
 			} catch (SQLException e) {
 				throw new IOException(e);
 			}
-			rules.add(new DataAccessRule(service.getName(), "*", AccessMode.ADMIN, adminNames));
-			
+			rules.add(new DataAccessRule(service.getName(), "*",
+					AccessMode.ADMIN, adminNames));
+
 			// Add permissions that apply to single layers only
 			HashSet<DataAccessRule> layerRules;
 			try {
@@ -240,12 +265,14 @@ public class DrupalRoleService implements GeoServerRoleService {
 	 * @return Administrators of at least one workspace
 	 * @throws SQLException
 	 */
-	public HashMap<WorkspaceInfoImpl,Set<GeoServerRole>> getWorkspaceAdministrators() throws SQLException {
+	public HashMap<WorkspaceInfoImpl, Set<GeoServerRole>> getWorkspaceAdministrators()
+			throws SQLException {
 		HashMap<WorkspaceInfoImpl, Set<GeoServerRole>> workspaceAdmins = new HashMap<WorkspaceInfoImpl, Set<GeoServerRole>>();
-		for (DrupalUserGroupService service : userGroupServices) {
+		for (DrupalUserGroupService service : getDrupalUserGroupServices()) {
 			WorkspaceInfoImpl workspace = new WorkspaceInfoImpl();
 			workspace.setName(service.getName());
-			workspaceAdmins.put(workspace, service.getWorkspaceAdministrators());
+			workspaceAdmins
+					.put(workspace, service.getWorkspaceAdministrators());
 		}
 		return workspaceAdmins;
 	}

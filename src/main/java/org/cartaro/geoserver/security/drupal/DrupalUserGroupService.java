@@ -41,6 +41,16 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 	 */
 	private static final GeoServerRole DRUPAL_ROOT_ROLE = new GeoServerRole("administrator");
 	
+	/**
+	 * Role name for all authenticated users in Drupal.
+	 */
+	private static final String AUTHENTICATED_USER = "authenticated user";
+	
+	/**
+	 * Role name for all non-authenticated users in Drupal.
+	 */
+	private static final String ANONYMOUS_USER = "anonymous user";
+	
 	private Set<UserGroupLoadedListener> listeners = Collections
 			.synchronizedSet(new HashSet<UserGroupLoadedListener>());
 	private DrupalDatabaseConnector connector;
@@ -240,6 +250,10 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 					roles.add(connector.addInstancePrefix(DRUPAL_ROOT_ROLE));
 				}
 			}
+			
+			// Assign all known users the permissions of being authenticated and anonymous.
+			roles.add(new GeoServerRole(connector.addInstancePrefix(AUTHENTICATED_USER)));
+			roles.add(new GeoServerRole(connector.addInstancePrefix(ANONYMOUS_USER)));
 		} catch (SQLException e) {
 			throw new IOException(e);
 		}
@@ -323,13 +337,13 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 						"where permission=? and module='geoserver' " +
 						"having array_agg(role.name) is not null";
 				
-				ResultSet viewPermissions = connector.getResultSet(layerPermissionQuery, "read "+layer.getName());
+				ResultSet viewPermissions = connector.getResultSet(layerPermissionQuery, "read layer "+layer.getName());
 				LOGGER.info("granting read permission for "+this.getName()+" "+layer.getName());
 				while(viewPermissions.next()){
 					layerAccessRules.add(buildDataAccessRule(layer.getName(),(String[]) viewPermissions.getArray("roles").getArray(), AccessMode.READ));
 				}
 				
-				ResultSet createEditDeletePermissions = connector.getResultSet(layerPermissionQuery, "write "+layer.getName());
+				ResultSet createEditDeletePermissions = connector.getResultSet(layerPermissionQuery, "write layer "+layer.getName());
 				LOGGER.info("granting write permission for "+this.getName()+" "+layer.getName());
 				while(createEditDeletePermissions.next()){
 					layerAccessRules.add(buildDataAccessRule(layer.getName(), (String[]) createEditDeletePermissions.getArray("roles").getArray(), AccessMode.WRITE));
