@@ -3,6 +3,7 @@ package org.cartaro.geoserver.security.drupal;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -288,15 +289,21 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 	 */
 	public SortedSet<GeoServerRole> getWorkspaceAdministrators()
 			throws SQLException {
-		ResultSet adminRoleNames = connector
+		final ResultSet adminRoleNames = connector
 				.getResultSet("select role.name "
 						+ "from role_permission join role using(rid) "
 						+ "where permission='administer geoserver' and module='geoserver'");
 
-		TreeSet<GeoServerRole> foundRoles = new TreeSet<GeoServerRole>();
+		final TreeSet<GeoServerRole> foundRoles = new TreeSet<GeoServerRole>();
 		while (adminRoleNames.next()) {
+			final String drupalRole = adminRoleNames.getString("name");
+			if(drupalRole.equals(ANONYMOUS_USER)){
+				// Let everybody administer because Drupal settings grant this for everybody.
+				foundRoles.clear();
+				return Collections.unmodifiableSortedSet(foundRoles);
+			}
 			foundRoles.add(connector.addInstancePrefix(new GeoServerRole(
-					adminRoleNames.getString("name"))));
+					drupalRole)));
 		}
 		
 		// Make a workspace administrator available during Drupal installation
@@ -340,13 +347,13 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 				ResultSet viewPermissions = connector.getResultSet(layerPermissionQuery, "read layer "+layer.getName());
 				LOGGER.info("granting read permission for "+this.getName()+" "+layer.getName());
 				while(viewPermissions.next()){
-					layerAccessRules.add(buildDataAccessRule(layer.getName(),(String[]) viewPermissions.getArray("roles").getArray(), AccessMode.READ));
+					layerAccessRules.add(buildDataAccessRule(layer, (String[]) viewPermissions.getArray("roles").getArray(), AccessMode.READ));
 				}
 				
 				ResultSet createEditDeletePermissions = connector.getResultSet(layerPermissionQuery, "write layer "+layer.getName());
 				LOGGER.info("granting write permission for "+this.getName()+" "+layer.getName());
 				while(createEditDeletePermissions.next()){
-					layerAccessRules.add(buildDataAccessRule(layer.getName(), (String[]) createEditDeletePermissions.getArray("roles").getArray(), AccessMode.WRITE));
+					layerAccessRules.add(buildDataAccessRule(layer, (String[]) createEditDeletePermissions.getArray("roles").getArray(), AccessMode.WRITE));
 				}
 			}
 		}
@@ -356,19 +363,24 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 
 	/**
 	 * Builds an access rule and adds instance prefix to all roles
-	 * @param layerName
-	 * @param roles
+	 * @param layer GeoServer layer
+	 * @param roles Drupal role names
 	 * @param mode
 	 * @return
 	 */
-	private DataAccessRule buildDataAccessRule(String layerName, String[] roles,
-			AccessMode mode) {
-		HashSet<String> roleNames = new HashSet<String>();
-		for (String roleName : roles) {
-			LOGGER.info(" to "+connector.addInstancePrefix(roleName));
-			roleNames.add(connector.addInstancePrefix(roleName));
+	private DataAccessRule buildDataAccessRule(final LayerInfo layer, final String[] roles,
+			final AccessMode mode) {
+		final HashSet<String> roleNames = new HashSet<String>();
+		if(Arrays.asList(roles).contains(ANONYMOUS_USER)){
+			// All access for everybody even not logged in users.
+			roleNames.add("*");
+		} else {
+			for (final String roleName : roles) {
+				LOGGER.info(" to "+connector.addInstancePrefix(roleName));
+				roleNames.add(connector.addInstancePrefix(roleName));
+			}
 		}
-		return new DataAccessRule(this.getName(), layerName, mode, roleNames);
+		return new DataAccessRule(this.getName(), layer.getName(), mode, roleNames);
 	}
 	
 	/**
