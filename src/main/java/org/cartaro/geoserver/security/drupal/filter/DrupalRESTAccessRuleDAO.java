@@ -9,6 +9,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.logging.Logger;
 
 import org.cartaro.geoserver.security.drupal.DrupalRoleService;
@@ -31,12 +33,30 @@ import org.springframework.security.access.SecurityConfig;
  * provide access to others' workspaces.
  */
 public class DrupalRESTAccessRuleDAO extends RESTAccessRuleDAO {
-	protected static Logger LOGGER = Logging.getLogger(DrupalRESTAccessRuleDAO.class);
+	protected static Logger LOGGER = Logging
+			.getLogger(DrupalRESTAccessRuleDAO.class);
+
+	/**
+	 * Should be the time of last modification of permission related data in
+	 * Drupal. Currently, this is just a time set in intervals because the
+	 * former is unknown.
+	 */
+	private long lastModified;
 
 	public DrupalRESTAccessRuleDAO(GeoServerDataDirectory dd)
 			throws IOException {
 		super(dd);
 		LOGGER.info("Drupal REST Access Rule injected");
+
+		// Change modification date to force update of permissions every 5s.
+		Timer modificationTrigger = new Timer();
+		modificationTrigger.scheduleAtFixedRate(new TimerTask() {
+			@Override
+			public void run() {
+				DrupalRESTAccessRuleDAO.this.lastModified = System
+						.currentTimeMillis();
+			}
+		}, 5000, 5000);
 	}
 
 	/**
@@ -46,6 +66,7 @@ public class DrupalRESTAccessRuleDAO extends RESTAccessRuleDAO {
 	 * remainder of the name. An equals sign splits name and value. Value is a
 	 * comma-separated list.
 	 */
+	@Override
 	public List<String> getRules() {
 		final ArrayList<String> rules = new ArrayList<String>();
 		// Deny all other request except for GeoServer's administrators.
@@ -151,16 +172,16 @@ public class DrupalRESTAccessRuleDAO extends RESTAccessRuleDAO {
 
 		return rules;
 	}
-	
+
 	@Override
 	public long getLastModified() {
-		// Refresh rules no more than every 5s.
-		return System.currentTimeMillis()/5000*5000;
+		return lastModified;
 	}
-	
+
 	@Override
 	public boolean isModified() {
-		// Refresh always because there is currently no way for GeoServer to be notified about changes in Drupal.
+		// Refresh always because there is currently no way for GeoServer to be
+		// notified about changes in Drupal.
 		return true;
 	}
 }
