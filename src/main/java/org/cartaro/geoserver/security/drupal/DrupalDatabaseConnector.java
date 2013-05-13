@@ -46,21 +46,32 @@ public class DrupalDatabaseConnector {
 			LOGGER.log(Level.WARNING, "Cannot connect to database of configuration "+drupalConfig.getName()+". Retrying in 5000ms interval.", e);
 			timer = new Timer();
 			timer.scheduleAtFixedRate(new TimerTask() {
+				final int max_retires = 5;
+				int retry_counter = 0;
+				
 				@Override
 				public void run() {
 					try {
 						DrupalDatabaseConnector.this.connection = DrupalDatabaseConnector.this.accquireConnection(drupalConfig);
 						timer.cancel();
 						timer = null;
-						LOGGER.log(Level.INFO, "Finally connected to database of configuration "+drupalConfig.getName());
+						LOGGER.log(Level.INFO, "Finally connected to database of configuration "+drupalConfig.getName() +
+									" (retry "+retry_counter+" of "+max_retires+")");
 					} catch (SQLException e) {
 						LOGGER.log(Level.WARNING, "Cannot connect to database of configuration "+drupalConfig.getName(), e);
+						retry_counter++;
+						if (retry_counter >= max_retires) {
+							LOGGER.log(Level.WARNING, "Retired " + retry_counter + " times to establish the connection to the database "
+									+ drupalConfig.getName() + " without success. aborting now.");
+							timer.cancel();
+							timer = null;
+						}
 					}
 				}
 			}, 5000, 5000);
 		}
 	}
-	
+		
 	/**
 	 * Closes database connection if any is still open.
 	 * Subsequent simply won't have any effect.
