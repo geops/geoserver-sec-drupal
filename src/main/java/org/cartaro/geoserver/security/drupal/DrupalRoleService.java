@@ -55,7 +55,7 @@ public class DrupalRoleService implements GeoServerRoleService {
 	 */
 	private List<DrupalUserGroupService> getDrupalUserGroupServices() {
 		final List<DrupalUserGroupService> userGroupServices = new ArrayList<DrupalUserGroupService>();
-		
+
 		final GeoServerSecurityManager manager = GeoServerExtensions
 				.bean(GeoServerSecurityManager.class);
 		List<GeoServerUserGroupService> allUserGroupServices;

@@ -65,7 +65,7 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 		DrupalSecurityServiceConfig drupalConfig = (DrupalSecurityServiceConfig) config;
 		passwordEncoderName = drupalConfig.getPasswordEncoderName();
 		passwordValidatorName = drupalConfig.getPasswordPolicyName();
-		
+
 		if(connector!=null){
 			connector.close();
 		}
@@ -107,6 +107,7 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 	public GeoServerUser getUserByUsername(String username) throws IOException {
 		LOGGER.info("Drupal GroupService loads user");
 		try {
+			connector.connect();
 			ResultSet rs = connector.getResultSet("select exists("
 					+ "select true from users where name=?" + ") as exists",
 					connector.stripInstancePrefix(username));
@@ -117,6 +118,8 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 			return null;
 		} catch (SQLException e) {
 			throw new IOException(e);
+		} finally {
+			connector.disconnect();
 		}
 	}
 
@@ -134,6 +137,7 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 		LOGGER.info("Drupal GroupService loads user list");
 		TreeSet<GeoServerUser> users = new TreeSet<GeoServerUser>();
 		try {
+			connector.connect();
 			ResultSet rs = connector.getResultSet("select name from users");
 			while (rs.next()) {
 				users.add(new GeoServerUser(connector.addInstancePrefix(rs
@@ -145,6 +149,8 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 			return Collections.unmodifiableSortedSet(users);
 		} catch (SQLException e) {
 			throw new IOException(e);
+		} finally {
+			connector.disconnect();
 		}
 	}
 
@@ -188,11 +194,14 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 	public int getUserCount() throws IOException {
 		ResultSet rs;
 		try {
+			connector.connect();
 			rs = connector.getResultSet("select count(*) from users");
 			rs.next();
 			return rs.getInt("count");
 		} catch (SQLException e) {
 			throw new IOException(e);
+		} finally {
+			connector.disconnect();
 		}
 	}
 
@@ -208,6 +217,7 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 		// Add all users of instance having the role
 		ResultSet rs;
 		try {
+			connector.connect();
 			rs = connector
 					.getResultSet(
 							"select users.name from users join users_roles using(uid) join role using(rid) where role.name =?",
@@ -228,6 +238,8 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 			}
 		} catch (SQLException e) {
 			throw new IOException(e);
+		} finally {
+			connector.disconnect();
 		}
 		return Collections.unmodifiableSortedSet(userNames);
 	}
@@ -237,6 +249,7 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 		// Add role for instance user
 		TreeSet<GeoServerRole> roles = new TreeSet<GeoServerRole>();
 		try {
+			connector.connect();
 			ResultSet rs = connector
 					.getResultSet(
 							"select role.name from role join users_roles using(rid) join users using(uid) where users.name=?",
@@ -263,6 +276,8 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 			roles.add(new GeoServerRole(connector.addInstancePrefix(ANONYMOUS_USER)));
 		} catch (SQLException e) {
 			throw new IOException(e);
+		} finally {
+			connector.disconnect();
 		}
 		return Collections.unmodifiableSortedSet(roles);
 	}
@@ -273,6 +288,7 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 		
 		ResultSet roles;
 		try {
+			connector.connect();
 			roles = connector.getResultSet("select name from role");
 			while (roles.next()) {
 				foundRoles.add(connector.addInstancePrefix(new GeoServerRole(
@@ -284,6 +300,8 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 			// Ignore missing connection here and return empty user list.
 			// Keeps service editable in GUI despite wrongly configured connections.
 			// Wrong configurations have been logged by failing connection acquire already.
+		} finally {
+			connector.disconnect();
 		}
 		return Collections.unmodifiableSortedSet(foundRoles);
 	}
@@ -295,36 +313,44 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 	 */
 	public SortedSet<GeoServerRole> getWorkspaceAdministrators()
 			throws SQLException {
-		final ResultSet adminRoleNames = connector
-				.getResultSet("select role.name "
-						+ "from role_permission join role using(rid) "
-						+ "where permission='administer geoserver' and module='geoserver'");
-
-		final TreeSet<GeoServerRole> foundRoles = new TreeSet<GeoServerRole>();
-		while (adminRoleNames.next()) {
-			final String drupalRole = adminRoleNames.getString("name");
-			if(drupalRole.equals(ANONYMOUS_USER)){
-				// Let everybody administer because Drupal settings grant this for everybody.
-				foundRoles.clear();
-				return Collections.unmodifiableSortedSet(foundRoles);
+		SortedSet<GeoServerRole> administrators;
+		
+		try {
+			connector.connect();
+			final ResultSet adminRoleNames = connector
+					.getResultSet("select role.name "
+							+ "from role_permission join role using(rid) "
+							+ "where permission='administer geoserver' and module='geoserver'");
+	
+			final TreeSet<GeoServerRole> foundRoles = new TreeSet<GeoServerRole>();
+			while (adminRoleNames.next()) {
+				final String drupalRole = adminRoleNames.getString("name");
+				if(drupalRole.equals(ANONYMOUS_USER)){
+					// Let everybody administer because Drupal settings grant this for everybody.
+					foundRoles.clear();
+					return Collections.unmodifiableSortedSet(foundRoles);
+				}
+				foundRoles.add(connector.addInstancePrefix(new GeoServerRole(
+						drupalRole)));
 			}
-			foundRoles.add(connector.addInstancePrefix(new GeoServerRole(
-					drupalRole)));
+			
+			// Make a workspace administrator available during Drupal installation
+			if(connector.isDrupalCurrentlyInstalling()){
+				foundRoles.add(connector.addInstancePrefix(INSTALLATION_ADMINISTRATOR));
+			}
+			
+			// Add Drupal root user
+			foundRoles.add(connector.addInstancePrefix(DRUPAL_ROOT_ROLE));
+	
+			// Add global admin as admin since GeoServer assumes everybody is admin
+			// when no admin was set
+			foundRoles.add(GeoServerRole.ADMIN_ROLE);
+	
+			administrators = Collections.unmodifiableSortedSet(foundRoles);
+		} finally {
+			connector.disconnect();
 		}
-		
-		// Make a workspace administrator available during Drupal installation
-		if(connector.isDrupalCurrentlyInstalling()){
-			foundRoles.add(connector.addInstancePrefix(INSTALLATION_ADMINISTRATOR));
-		}
-		
-		// Add Drupal root user
-		foundRoles.add(connector.addInstancePrefix(DRUPAL_ROOT_ROLE));
-
-		// Add global admin as admin since GeoServer assumes everybody is admin
-		// when no admin was set
-		foundRoles.add(GeoServerRole.ADMIN_ROLE);
-
-		return Collections.unmodifiableSortedSet(foundRoles);
+		return administrators;
 	}
 
 	/**
@@ -337,31 +363,35 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 		LOGGER.info("Injected: getLayerAccessRules");
 		HashSet<DataAccessRule> layerAccessRules = new HashSet<DataAccessRule>();
 		
-		LOGGER.info("dumping catalog");
-		for(LayerInfo layer: rawCatalog.getLayers()){
-			String workspaceName =layer.getResource().getStore().getWorkspace().getName();
-			LOGGER.info("workspacename "+workspaceName+"="+this.getName());
-			if(workspaceName.equals(this.getName())){
-				LOGGER.info(layer.getResource().getStore().getWorkspace().getName());
-				LOGGER.info(layer.getName());
-				String layerPermissionQuery = "select array_agg(role.name) as roles " +
-						"from role " +
-						"join role_permission using(rid) " +
-						"where permission=? and module='geoserver' " +
-						"having array_agg(role.name) is not null";
-				
-				ResultSet viewPermissions = connector.getResultSet(layerPermissionQuery, "read layer "+layer.getName());
-				LOGGER.info("granting read permission for "+this.getName()+" "+layer.getName());
-				while(viewPermissions.next()){
-					layerAccessRules.add(buildDataAccessRule(layer, (String[]) viewPermissions.getArray("roles").getArray(), AccessMode.READ));
-				}
-				
-				ResultSet createEditDeletePermissions = connector.getResultSet(layerPermissionQuery, "write layer "+layer.getName());
-				LOGGER.info("granting write permission for "+this.getName()+" "+layer.getName());
-				while(createEditDeletePermissions.next()){
-					layerAccessRules.add(buildDataAccessRule(layer, (String[]) createEditDeletePermissions.getArray("roles").getArray(), AccessMode.WRITE));
+		try {
+			LOGGER.info("dumping catalog");
+			for(LayerInfo layer: rawCatalog.getLayers()){
+				String workspaceName =layer.getResource().getStore().getWorkspace().getName();
+				LOGGER.info("workspacename "+workspaceName+"="+this.getName());
+				if(workspaceName.equals(this.getName())){
+					LOGGER.info(layer.getResource().getStore().getWorkspace().getName());
+					LOGGER.info(layer.getName());
+					String layerPermissionQuery = "select array_agg(role.name) as roles " +
+							"from role " +
+							"join role_permission using(rid) " +
+							"where permission=? and module='geoserver' " +
+							"having array_agg(role.name) is not null";
+					
+					ResultSet viewPermissions = connector.getResultSet(layerPermissionQuery, "read layer "+layer.getName());
+					LOGGER.info("granting read permission for "+this.getName()+" "+layer.getName());
+					while(viewPermissions.next()){
+						layerAccessRules.add(buildDataAccessRule(layer, (String[]) viewPermissions.getArray("roles").getArray(), AccessMode.READ));
+					}
+					
+					ResultSet createEditDeletePermissions = connector.getResultSet(layerPermissionQuery, "write layer "+layer.getName());
+					LOGGER.info("granting write permission for "+this.getName()+" "+layer.getName());
+					while(createEditDeletePermissions.next()){
+						layerAccessRules.add(buildDataAccessRule(layer, (String[]) createEditDeletePermissions.getArray("roles").getArray(), AccessMode.WRITE));
+					}
 				}
 			}
+		} finally {
+			connector.disconnect();
 		}
 
 		return layerAccessRules;

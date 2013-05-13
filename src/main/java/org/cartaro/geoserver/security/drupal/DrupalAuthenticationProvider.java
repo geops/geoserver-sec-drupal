@@ -78,6 +78,8 @@ public class DrupalAuthenticationProvider extends
 		LOGGER.info("Drupal user tries to log in:" + token.getPrincipal()
 				+ " pw:" + token.getCredentials());
 		try {
+			connector.connect();
+			
 			final Object passwordRaw = token.getCredentials();
 			// Trim whitespace from the password because Drupal does this, too.
 			final String password = ((String) (passwordRaw == null ? ""
@@ -154,6 +156,9 @@ public class DrupalAuthenticationProvider extends
 					"Cannot verify credentials for Drupal user "
 							+ token.getPrincipal(), e);
 			return null;
+		}
+		finally {
+			connector.disconnect();
 		}
 	}
 
