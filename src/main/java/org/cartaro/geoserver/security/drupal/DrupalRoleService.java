@@ -113,11 +113,15 @@ public class DrupalRoleService implements GeoServerRoleService {
 	}
 
 	public void registerRoleLoadedListener(RoleLoadedListener listener) {
-		listeners.add(listener);
+		synchronized(listeners) {
+			listeners.add(listener);
+		}
 	}
 
 	public void unregisterRoleLoadedListener(RoleLoadedListener listener) {
-		listeners.remove(listener);
+		synchronized(listeners) {
+			listeners.remove(listener);
+		}
 	}
 
 	public SortedSet<String> getGroupNamesForRole(GeoServerRole role)
@@ -200,8 +204,10 @@ public class DrupalRoleService implements GeoServerRoleService {
 	public void load() throws IOException {
 		// No load roles loaded here since roles are loaded whenever required
 		RoleLoadedEvent roleLoadedEvent = new RoleLoadedEvent(this);
-		for (RoleLoadedListener listener : listeners) {
-			listener.rolesChanged(roleLoadedEvent);
+		synchronized(listeners) {
+			for (RoleLoadedListener listener : listeners) {
+				listener.rolesChanged(roleLoadedEvent);
+			}
 		}
 	}
 

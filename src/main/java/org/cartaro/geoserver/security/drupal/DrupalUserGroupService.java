@@ -86,12 +86,16 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 	}
 
 	public void registerUserGroupLoadedListener(UserGroupLoadedListener listener) {
-		listeners.add(listener);
+		synchronized(listeners) {
+			listeners.add(listener);
+		}
 	}
 
 	public void unregisterUserGroupLoadedListener(
 			UserGroupLoadedListener listener) {
-		listeners.remove(listener);
+		synchronized(listeners) {
+			listeners.remove(listener);
+		}
 	}
 
 	public GeoServerUserGroup getGroupByGroupname(String groupname)
@@ -166,8 +170,10 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 	public void load() throws IOException {
 		// No load roles loaded here since users are loaded whenever required
 		UserGroupLoadedEvent event = new UserGroupLoadedEvent(this);
-		for (UserGroupLoadedListener listener : listeners) {
-			listener.usersAndGroupsChanged(event);
+		synchronized(listeners) {
+			for (UserGroupLoadedListener listener : listeners) {
+				listener.usersAndGroupsChanged(event);
+			}
 		}
 	}
 
