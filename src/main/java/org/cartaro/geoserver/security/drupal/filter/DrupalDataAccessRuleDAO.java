@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
-import java.util.TimerTask;
 import java.util.logging.Logger;
 
 import org.cartaro.geoserver.security.drupal.DrupalRoleService;
@@ -17,7 +16,7 @@ import org.geoserver.security.impl.DataAccessRule;
 import org.geoserver.security.impl.DataAccessRuleDAO;
 import org.geotools.util.logging.Logging;
 
-public class DrupalDataAccessRuleDAO extends DataAccessRuleDAO {
+public class DrupalDataAccessRuleDAO extends DataAccessRuleDAO implements LastModificationTriggerable {
 	protected static Logger LOGGER = Logging
 			.getLogger(DrupalDataAccessRuleDAO.class);
 	private final Catalog rawCatalog;
@@ -37,13 +36,7 @@ public class DrupalDataAccessRuleDAO extends DataAccessRuleDAO {
 
 		// Change modification date to force update of permissions every 5s.
 		Timer modificationTrigger = new Timer();
-		modificationTrigger.scheduleAtFixedRate(new TimerTask() {
-			@Override
-			public void run() {
-				DrupalDataAccessRuleDAO.this.lastModified = System
-						.currentTimeMillis();
-			}
-		}, 5000, 5000);
+		modificationTrigger.scheduleAtFixedRate(new LastModificationTimerTask(this), 000, 2000);
 	}
 
 	@Override
@@ -78,5 +71,10 @@ public class DrupalDataAccessRuleDAO extends DataAccessRuleDAO {
 	@Override
 	public long getLastModified() {
 		return lastModified;
+	}
+
+	public void setLastModified(long newLastModified) {
+		lastModified = newLastModified;
+		
 	}
 }
