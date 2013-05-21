@@ -7,7 +7,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Timer;
-import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -22,10 +21,8 @@ public class DrupalDatabaseConnector {
 	
 	private Connection connection;
 	
-	/**
-	 * Value prepended to Drupal users and roles
-	 */
-	private String instancePrefix;
+	private DrupalSecurityServiceConfig drupalConfig;
+
 
 	private Timer timer;
 
@@ -34,11 +31,12 @@ public class DrupalDatabaseConnector {
 	 * @param drupalConfig
 	 * @throws ClassNotFoundException
 	 */
-	public DrupalDatabaseConnector(final DrupalSecurityServiceConfig drupalConfig)
+	public DrupalDatabaseConnector(final DrupalSecurityServiceConfig newDrupalConfig)
 			throws ClassNotFoundException {
-		instancePrefix = drupalConfig.getDrupalInstancePrefix();
+		drupalConfig = newDrupalConfig;
 		
 		Class.forName("org.postgresql.Driver");
+		/*
 		try{
 			this.connection = this.accquireConnection(drupalConfig);
 		} catch (SQLException e){
@@ -70,6 +68,25 @@ public class DrupalDatabaseConnector {
 				}
 			}, 5000, 5000);
 		}
+		*/
+	}
+	
+	public void connect() throws SQLException {
+		if (this.connection == null) {
+			// TODO: implement retires and logging
+			this.connection = this.accquireConnection(drupalConfig);
+		}
+	}
+	
+	public void disconnect() {
+		if(this.connection!=null){
+			try {
+				this.connection.close();
+				this.connection = null;
+			} catch (SQLException e) {
+				LOGGER.log(Level.WARNING, "Could not close database connection of "+drupalConfig.getDrupalInstancePrefix(), e);
+			}
+		}
 	}
 		
 	/**
@@ -80,15 +97,9 @@ public class DrupalDatabaseConnector {
 		if(timer!=null){
 			timer.cancel();
 			timer = null;
-			LOGGER.log(Level.WARNING, "Don't try failing connection attempts to database of configuration "+instancePrefix+" any longer.");
+			LOGGER.log(Level.WARNING, "Don't try failing connection attempts to database of configuration "+drupalConfig.getDrupalInstancePrefix()+" any longer.");
 		}
-		if(this.connection!=null){
-			try {
-				this.connection.close();
-			} catch (SQLException e) {
-				LOGGER.log(Level.WARNING, "Could not close database connection of "+instancePrefix, e);
-			}
-		}
+		this.disconnect();
 	}
 
 	protected Connection accquireConnection(
@@ -133,7 +144,7 @@ public class DrupalDatabaseConnector {
 		if(!hasInstancePrefix(prefixed)){
 			throw new IllegalArgumentException("Does not have prefix to be stripped: "+prefixed);
 		}
-		return prefixed.substring(instancePrefix.length());
+		return prefixed.substring(drupalConfig.getDrupalInstancePrefix().length());
 	}
 	
 	/**
@@ -141,7 +152,7 @@ public class DrupalDatabaseConnector {
 	 * @return True if prefixes are shared
 	 */
 	public boolean hasInstancePrefix(String prefixed){
-		return prefixed.startsWith(instancePrefix);
+		return prefixed.startsWith(drupalConfig.getDrupalInstancePrefix());
 	}
 
 	/**
@@ -150,7 +161,7 @@ public class DrupalDatabaseConnector {
 	 * @return
 	 */
 	public String addInstancePrefix(String string) {
-		return instancePrefix + string;
+		return drupalConfig.getDrupalInstancePrefix() + string;
 	}
 	
 	/**
