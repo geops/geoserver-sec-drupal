@@ -1,6 +1,7 @@
 package org.cartaro.geoserver.security.drupal;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,6 +31,7 @@ import org.geoserver.security.RESTfulDefinitionSource;
 import org.geoserver.security.config.SecurityNamedServiceConfig;
 import org.geoserver.security.event.RoleLoadedEvent;
 import org.geoserver.security.event.RoleLoadedListener;
+import org.geoserver.security.file.FileWatcher;
 import org.geoserver.security.impl.DataAccessRule;
 import org.geoserver.security.impl.GeoServerRole;
 import org.geotools.util.logging.Logging;
@@ -53,20 +55,55 @@ public class DrupalRoleService implements GeoServerRoleService {
 	/**
 	 * @return All user group services that bind to a Drupal instance.
 	 */
+	@SuppressWarnings("unchecked")
 	private List<DrupalUserGroupService> getDrupalUserGroupServices() {
 		final List<DrupalUserGroupService> userGroupServices = new ArrayList<DrupalUserGroupService>();
 
 		final GeoServerSecurityManager manager = GeoServerExtensions
 				.bean(GeoServerSecurityManager.class);
+
+		// terminate all running filewatchers in the securitymanager to avoid
+		// accumulating threads watching users.xml
+		// it would be far better to prevent new threads from being spawned on each reload,
+		// but this is what we can do now.
+		try {
+			LOGGER.log(Level.FINEST, "Attempting to terminate existing filewatchers in userGroupServiceHelper");
+			Field helperField = manager.getClass().getDeclaredField("userGroupServiceHelper");
+			helperField.setAccessible(true);
+			Object helper = helperField.get(manager);
+
+			Field fileWatchersField = helper.getClass().getSuperclass().getDeclaredField("fileWatchers");
+			fileWatchersField.setAccessible(true);
+			ArrayList<FileWatcher> fileWatchers = (ArrayList<FileWatcher>) fileWatchersField.get(helper);
+
+			// terminate all threads
+            for (FileWatcher fileWatcher : fileWatchers) {
+                LOGGER.log(Level.FINE, "Terminating existing filewatcher on "+fileWatcher.getFileInfo());
+                fileWatcher.setTerminate(true);
+            }
+			fileWatchers.clear();
+
+		} catch (SecurityException e) {
+			LOGGER.log(Level.WARNING, "Access to member forbidden. Could not stop filewatchers.", e);
+		} catch (NoSuchFieldException e) {
+			LOGGER.log(Level.WARNING, "Could not access member. Could not stop filewatchers.", e);
+		}  catch (IllegalArgumentException e) {
+			LOGGER.log(Level.WARNING, "invalid argument. Could not stop filewatchers.", e);
+		} catch (IllegalAccessException e) {
+			LOGGER.log(Level.WARNING, "attribute can not be accessed. Could not stop filewatchers.", e);
+		}
+
+
 		List<GeoServerUserGroupService> allUserGroupServices;
 		try {
+			// reload users and groups. this will spawn a new filewatcher on the users.xml file (geoserver 2.2)
 			allUserGroupServices = manager
 					.loadUserGroupServices();
 		} catch (IOException e) {
 			LOGGER.log(Level.INFO, "Could not read user group services. Drupal logins won't work.", e);
 			return userGroupServices;
 		}
-		
+
 		// Prevent GeoServer from caching the services' data because they change content without informing GeoServer.
 		RESTfulDefinitionSource restPaths = GeoServerExtensions.bean(RESTfulDefinitionSource.class);
 		if(restPaths instanceof DrupalRESTfulDefinitionSource){
@@ -75,14 +112,14 @@ public class DrupalRoleService implements GeoServerRoleService {
 		} else {
 			LOGGER.warning("Cannot update REST paths (access rules). Verify implementation of RESTfulDefinitionSource was overridden by applicationSecurityContextOverride.xml.");
 		}
-		
+
 		for (final GeoServerUserGroupService userGroupService : allUserGroupServices) {
 			if (userGroupService instanceof DrupalUserGroupService) {
 				final DrupalUserGroupService drupalUserGroupService = (DrupalUserGroupService) userGroupService;
 				userGroupServices.add(drupalUserGroupService);
 			}
 		}
-		
+
 		return userGroupServices;
 	}
 
