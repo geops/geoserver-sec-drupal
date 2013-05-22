@@ -55,7 +55,6 @@ public class DrupalRoleService implements GeoServerRoleService {
 	/**
 	 * @return All user group services that bind to a Drupal instance.
 	 */
-	@SuppressWarnings("unchecked")
 	private List<DrupalUserGroupService> getDrupalUserGroupServices() {
 		final List<DrupalUserGroupService> userGroupServices = new ArrayList<DrupalUserGroupService>();
 
@@ -74,6 +73,7 @@ public class DrupalRoleService implements GeoServerRoleService {
 
 			Field fileWatchersField = helper.getClass().getSuperclass().getDeclaredField("fileWatchers");
 			fileWatchersField.setAccessible(true);
+			@SuppressWarnings("unchecked")
 			ArrayList<FileWatcher> fileWatchers = (ArrayList<FileWatcher>) fileWatchersField.get(helper);
 
 			// terminate all threads
