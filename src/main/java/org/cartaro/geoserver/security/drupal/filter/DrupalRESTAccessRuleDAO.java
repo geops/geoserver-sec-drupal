@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Timer;
-import java.util.TimerTask;
 import java.util.logging.Logger;
 
 import org.cartaro.geoserver.security.drupal.DrupalRoleService;
@@ -32,7 +31,7 @@ import org.springframework.security.access.SecurityConfig;
  * However instance administrators are not allowed to access any URI that would
  * provide access to others' workspaces.
  */
-public class DrupalRESTAccessRuleDAO extends RESTAccessRuleDAO {
+public class DrupalRESTAccessRuleDAO extends RESTAccessRuleDAO implements LastModificationTriggerable {
 	protected static Logger LOGGER = Logging
 			.getLogger(DrupalRESTAccessRuleDAO.class);
 
@@ -50,13 +49,7 @@ public class DrupalRESTAccessRuleDAO extends RESTAccessRuleDAO {
 
 		// Change modification date to force update of permissions every 5s.
 		Timer modificationTrigger = new Timer();
-		modificationTrigger.scheduleAtFixedRate(new TimerTask() {
-			@Override
-			public void run() {
-				DrupalRESTAccessRuleDAO.this.lastModified = System
-						.currentTimeMillis();
-			}
-		}, 5000, 5000);
+		modificationTrigger.scheduleAtFixedRate(new LastModificationTimerTask(this), 2000, 2000);
 	}
 
 	/**
@@ -183,5 +176,9 @@ public class DrupalRESTAccessRuleDAO extends RESTAccessRuleDAO {
 		// Refresh always because there is currently no way for GeoServer to be
 		// notified about changes in Drupal.
 		return true;
+	}
+
+	public void setLastModified(long newLastModified) {
+		lastModified = newLastModified;
 	}
 }
