@@ -365,6 +365,7 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 		
 		try {
 			LOGGER.info("dumping catalog");
+			connector.connect();
 			for(LayerInfo layer: rawCatalog.getLayers()){
 				String workspaceName =layer.getResource().getStore().getWorkspace().getName();
 				LOGGER.info("workspacename "+workspaceName+"="+this.getName());
