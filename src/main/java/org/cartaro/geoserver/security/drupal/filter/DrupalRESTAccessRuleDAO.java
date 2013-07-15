@@ -149,19 +149,14 @@ public class DrupalRESTAccessRuleDAO extends RESTAccessRuleDAO implements LastMo
 				final RESTfulDefinitionSourceMapping ruleNamespacesShared = new RESTfulDefinitionSourceMapping();
 				ruleNamespacesShared.setUrl("/rest/namespaces*");
 				ruleNamespacesShared.setHttpMethods(new String[] { "GET" });
-				final RESTfulDefinitionSourceMapping aboutVersionShared = new RESTfulDefinitionSourceMapping();
-				aboutVersionShared.setUrl("/rest/about/version*");
-				aboutVersionShared.setHttpMethods(new String[] { "GET" });
 				for (final GeoServerRole admin : sharedAdmins) {
 					final SecurityConfig adminName = new SecurityConfig(
 							admin.getAuthority());
 					ruleWorkspacesShared.addConfigAttribute(adminName);
 					ruleNamespacesShared.addConfigAttribute(adminName);
-					aboutVersionShared.addConfigAttribute(adminName);
 				}
 				rules.add(ruleWorkspacesShared);
 				rules.add(ruleNamespacesShared);
-				rules.add(aboutVersionShared);
 			} catch (SQLException e) {
 				throw new RuntimeException(
 						"Could not load workspace administrators", e);
