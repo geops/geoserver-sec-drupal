@@ -17,6 +17,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.ConcurrentModificationException;
 
 import org.cartaro.geoserver.security.drupal.filter.DrupalRESTfulDefinitionSource;
 import org.geoserver.catalog.Catalog;
@@ -91,7 +92,13 @@ public class DrupalRoleService implements GeoServerRoleService {
 			LOGGER.log(Level.WARNING, "invalid argument. Could not stop filewatchers.", e);
 		} catch (IllegalAccessException e) {
 			LOGGER.log(Level.WARNING, "attribute can not be accessed. Could not stop filewatchers.", e);
-		}
+		} catch (ConcurrentModificationException e) {
+            // two threads attempt to terminate the filewatchers concurrently.
+            // this can be ignored as the otherthread will most certainly terminate the threads. Otherwise
+            // they will be terminated during the next request [#3070068]
+            LOGGER.log(Level.INFO, "Concurrent attempt to terminate filewatchers. Skipping termination.");
+        }
+
 
 
 		List<GeoServerUserGroupService> allUserGroupServices;
