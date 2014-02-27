@@ -58,6 +58,11 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 	private String passwordEncoderName;
 	private String passwordValidatorName;
 	
+	private enum PropertyQueryOperator {
+		HAS_PROPERTY,
+		NOT_HAS_PROPERTY
+	};
+	
 	@Override
 	public void initializeFromConfig(SecurityNamedServiceConfig config)
 			throws IOException {
@@ -143,7 +148,7 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 				users.add(new GeoServerUser(connector.addInstancePrefix(rs
 						.getString("name"))));
 				HashSet<GrantedAuthority> roleset = new HashSet<GrantedAuthority>();
-				roleset.add(new GeoServerRole("schreiber"));
+				roleset.add(new GeoServerRole("schreiber")); // TODO: why is this needed. does the set just need at least one role
 				users.last().setAuthorities(roleset);
 			}
 			return Collections.unmodifiableSortedSet(users);
@@ -252,7 +257,8 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 			connector.connect();
 			ResultSet rs = connector
 					.getResultSet(
-							"select role.name from role join users_roles using(rid) join users using(uid) where users.name=?",
+							"select role.name from role join users_roles using(rid) join " +
+							"users using(uid) where users.name=?",
 							connector.stripInstancePrefix(
 									new GeoServerRole(username)).getAuthority());
 			while (rs.next()) {
@@ -426,5 +432,167 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 	 */
 	public boolean isResponsibleForUser(String username){
 		return connector.hasInstancePrefix(username);
+	}
+
+
+	/**
+	 * maps properties to columns of drupals "users" table.
+	 * 
+	 * @param propname
+	 * @return The column of drupals "users"-table which holds the info for this property 
+	 */
+	private String getSQLPropertyColumn(String propname) {
+		String columnName = null;
+		if (propname=="mail") {
+			columnName="mail";
+		} else {
+			columnName=null;
+		}
+		return columnName;
+	}
+
+	
+	/**
+	 * return users having or not having a property
+	 * 
+	 * @param propname
+	 * @param propop
+	 * @return
+	 * @throws IOException
+	 */
+	private SortedSet<GeoServerUser> queryUserProperty(String propname, PropertyQueryOperator propop) 
+				throws IOException {
+		TreeSet<GeoServerUser> users = new TreeSet<GeoServerUser>();
+		String columnName = getSQLPropertyColumn(propname);
+
+		if (columnName != null) {
+			try {
+				LOGGER.info("quering catalog for property " + propname);
+				connector.connect();
+				
+				String query = "select name from users where " + columnName + " ";
+				if (propop==PropertyQueryOperator.HAS_PROPERTY) {
+					query += "is not null and " + columnName + "is distinct from ''";
+				}
+				else if (propop==PropertyQueryOperator.NOT_HAS_PROPERTY) {
+					query += "is null or " + columnName + " is not distinct from ''";
+				}
+				else {
+					throw new IOException("Unsupported PropertyQueryOperator: " + propop.name());
+				}
+				
+				ResultSet rs = connector.getResultSet(query);
+				while (rs.next()) {
+					users.add(new GeoServerUser(connector.addInstancePrefix(rs
+							.getString("name"))));
+					HashSet<GrantedAuthority> roleset = new HashSet<GrantedAuthority>();
+					roleset.add(new GeoServerRole("schreiber")); // TODO: why is this needed. does the set just need at least one role
+					users.last().setAuthorities(roleset);
+				}
+			} catch (SQLException e) {
+				throw new IOException(e);
+			} finally {
+				connector.disconnect();
+			}
+		}
+		return Collections.unmodifiableSortedSet(users);
+	}
+	
+	/**
+	 * return users which have a property with the given name and value
+	 * 
+	 * @param propname
+	 * @param propvalue
+	 * @return
+	 * @throws IOException
+	 */
+	private SortedSet<GeoServerUser> queryUserPropertyByMatchingValue(String propname, String propvalue) 
+			throws IOException {
+		TreeSet<GeoServerUser> users = new TreeSet<GeoServerUser>();
+		String columnName = getSQLPropertyColumn(propname);
+
+		if (columnName != null) {
+			try {
+				LOGGER.info("quering catalog for property " + propname + " and value " + propvalue);
+				connector.connect();
+				
+				String query = "select name from users where " + columnName + " is not distinct from ?";
+				ResultSet rs = connector.getResultSet(query, propvalue);
+				while (rs.next()) {
+					users.add(new GeoServerUser(connector.addInstancePrefix(rs
+							.getString("name"))));
+					HashSet<GrantedAuthority> roleset = new HashSet<GrantedAuthority>();
+					roleset.add(new GeoServerRole("schreiber")); // TODO: why is this needed. does the set just need at least one role
+					users.last().setAuthorities(roleset);
+				}		
+			} catch (SQLException e) {
+				throw new IOException(e);
+			} finally {
+				connector.disconnect();
+			}
+		}
+		return Collections.unmodifiableSortedSet(users);
+	}
+	
+	/**
+	 * Added in http://jira.codehaus.org/browse/GEOS-5557.
+	 */
+	public SortedSet<GeoServerUser> getUsersHavingProperty(String propname)
+			throws IOException {
+		return queryUserProperty(propname, PropertyQueryOperator.HAS_PROPERTY);
+	}
+
+	/**
+	 * Added in http://jira.codehaus.org/browse/GEOS-5557.
+	 */
+	public int getUserCountHavingProperty(String propname) throws IOException {
+		SortedSet<GeoServerUser> users = getUsersHavingProperty(propname);
+		if (users == null) {
+			return 0;
+		}
+		return users.size();
+	}
+
+	/**
+	 * Added in http://jira.codehaus.org/browse/GEOS-5557.
+	 */
+	public SortedSet<GeoServerUser> getUsersNotHavingProperty(String propname)
+			throws IOException {
+		return queryUserProperty(propname, PropertyQueryOperator.NOT_HAS_PROPERTY);
+	}
+	
+	/**
+	 * Added in http://jira.codehaus.org/browse/GEOS-5557.
+	 * 
+	 * Not really supported by this module so far as this method
+	 * directly depends on getUsersNotHavingProperty.
+	 */
+	public int getUserCountNotHavingProperty(String propname)
+			throws IOException {
+		SortedSet<GeoServerUser> users = getUsersNotHavingProperty(propname);
+		if (users == null) {
+			return 0;
+		}
+		return users.size();
+	}
+	
+	/**
+	 * Added in http://jira.codehaus.org/browse/GEOS-5557.
+	 */
+	public SortedSet<GeoServerUser> getUsersHavingPropertyValue(
+			String propname, String propvalue) throws IOException {
+		return queryUserPropertyByMatchingValue(propname, propvalue);
+	}
+	
+	/**
+	 * Added in http://jira.codehaus.org/browse/GEOS-5557.
+	 */
+	public int getUserCountHavingPropertyValue(String propname, String propvalue)
+			throws IOException {
+		SortedSet<GeoServerUser> users = getUsersHavingPropertyValue(propname, propvalue);
+		if (users == null) {
+			return 0;
+		}
+		return users.size();
 	}
 }

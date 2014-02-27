@@ -15,7 +15,7 @@
 This is an plugin for GeoServer and not part of it.</description>
 	<url>https://github.com/geops/geoserver-sec-drupal</url>
 	<properties>
-		<geoserver.version>2.2</geoserver.version>
+		<geoserver.version>2.4</geoserver.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 	<build>
@@ -56,7 +56,7 @@ This is an plugin for GeoServer and not part of it.</description>
 		</dependency>
 		<dependency>
 			<groupId>org.geoserver.web</groupId>
-			<artifactId>web-security</artifactId>
+			<artifactId>gs-web-sec</artifactId>
 			<version>${geoserver.version}</version>
 		</dependency>
 		<dependency>
