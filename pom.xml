@@ -15,7 +15,8 @@
 This is an plugin for GeoServer and not part of it.</description>
 	<url>https://github.com/geops/geoserver-sec-drupal</url>
 	<properties>
-		<geoserver.version>2.4</geoserver.version>
+		<geoserver.version>2.4.0</geoserver.version>
+		<wicket.version>1.4.12</wicket.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 	<build>
@@ -54,11 +55,23 @@ This is an plugin for GeoServer and not part of it.</description>
 			<artifactId>main</artifactId>
 			<version>${geoserver.version}</version>
 		</dependency>
+		
 		<dependency>
 			<groupId>org.geoserver.web</groupId>
-			<artifactId>gs-web-sec</artifactId>
+			<artifactId>web-security</artifactId>
 			<version>${geoserver.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.wicket</groupId>
+			<artifactId>wicket-extensions</artifactId>
+			<version>${wicket.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.wicket</groupId>
+			<artifactId>wicket</artifactId>
+			<version>${wicket.version}</version>
+		</dependency>
+		
 		<dependency>
 			<groupId>org.geoserver</groupId>
 			<artifactId>main</artifactId>
