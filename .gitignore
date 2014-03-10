@@ -9,3 +9,4 @@
 /bin
 /target
 /.classpath
+/src/main/resources/geoserver-sec-drupal.gitversion

@@ -25,7 +25,10 @@ public class DrupalSecurityProvider extends GeoServerSecurityProvider {
     @Override
     public void init(GeoServerSecurityManager manager) {
     	super.init(manager);
-    	LOGGER.info("drupal init DrupalSecurityProvider");
+    	LOGGER.info("drupal init DrupalSecurityProvider.");
+    	
+    	ExtensionInfo extensionInfo = new ExtensionInfo();
+    	LOGGER.info("geoserver-sec-drupal git version: " +extensionInfo.getGitVersion());
     }
 
     @Override
