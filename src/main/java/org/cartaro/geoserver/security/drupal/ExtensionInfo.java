@@ -19,7 +19,12 @@ public class ExtensionInfo {
 		return new Scanner(rs,"UTF-8").useDelimiter("\\A").next().trim();
 	}
 	
-	String getGitVersion() {
+	/**
+	 * read the bundled git commit hash file
+	 * 
+	 * @return String containing the commit hash
+	 */
+	public String getGitVersion() {
 		String gitVersion = getResourceContents("/geoserver-sec-drupal.gitversion");
 		
 		if ((gitVersion==null) || (gitVersion=="")) {
@@ -27,5 +32,18 @@ public class ExtensionInfo {
 		}
 		return gitVersion;
 	}
+	
 
+	/**
+	 * read the version of the package/extension
+	 * 
+	 * @return String
+	 */
+	public String getVersion() {
+		String version = getClass().getPackage().getImplementationVersion();
+		if (version == null) {
+			version = "unknown - not packaged";
+		}
+		return version;
+	}
 }
