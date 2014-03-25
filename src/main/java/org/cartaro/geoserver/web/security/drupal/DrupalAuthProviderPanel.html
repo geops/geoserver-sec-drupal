@@ -33,12 +33,10 @@
             </li>
             <li>
               <label for="usePrefix"><wicket:message key="usePrefix"></wicket:message></label>
-
-                 <input id="usePrefix" wicket:id="usePrefix" type="checkbox" class="checkbox"></input>
-                           <p>
-              When GeoServer is shared by multiple Cartaro instances it is necessary to enable this option to make Drupal instances distinguishable in GeoServer.
-             </p>
-    
+              <input id="usePrefix" wicket:id="usePrefix" type="checkbox" class="checkbox"></input>
+              <p>
+              	<wicket:message key="usePrefixExplanation"></wicket:message>
+              </p>
             </li>
           </ul>
         </fieldset>
