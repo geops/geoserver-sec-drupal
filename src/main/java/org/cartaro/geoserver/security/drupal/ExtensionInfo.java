@@ -1,5 +1,6 @@
 package org.cartaro.geoserver.security.drupal;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Scanner;
 
@@ -12,11 +13,23 @@ import java.util.Scanner;
 public class ExtensionInfo {
 	
 	private String getResourceContents(String resourceName) {
-		InputStream rs = getClass().getResourceAsStream(resourceName);
-		if (rs==null) {
-			return "";
+		InputStream rs = null;
+		try {
+			rs = getClass().getResourceAsStream(resourceName);
+			if (rs==null) {
+				return "";
+			}
+			return new Scanner(rs,"UTF-8").useDelimiter("\\A").next().trim();
+		} finally {
+			if (rs != null) {
+				try {
+					rs.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
 		}
-		return new Scanner(rs,"UTF-8").useDelimiter("\\A").next().trim();
 	}
 	
 	/**
