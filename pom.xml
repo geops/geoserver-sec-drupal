@@ -16,7 +16,7 @@ This is an plugin for GeoServer and not part of it.</description>
 	<url>https://github.com/geops/geoserver-sec-drupal</url>
 
 	<properties>
-		<geoserver.version>2.7.3</geoserver.version>
+		<geoserver.version>2.8.0</geoserver.version>
 		<wicket.version>1.4.12</wicket.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>

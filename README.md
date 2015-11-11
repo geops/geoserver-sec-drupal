@@ -8,7 +8,7 @@ Installation
 ============
 Copy the jar file of the desired version into ``geoserver/WEB-INF/lib/`` within your servlet container. In case you use Tomcat to run GeoServer the path will be similar to ``/var/lib/tomcat7/webapps/geoserver/WEB-INF/lib/``.
 
-GeoServer version 2.2 and Drupal 7 running on Postgres are required.
+GeoServer version >2.2 (currently tested are 2.7.3 and 2.8.0) and Drupal 7 running on Postgres are required.
 
 Configuration
 =============
