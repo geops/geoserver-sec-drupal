@@ -7,7 +7,7 @@
 	<groupId>org.cartaro.geoserver.security</groupId>
 	<artifactId>geoserver-sec-drupal</artifactId>
 	<packaging>jar</packaging>
-	<version>7.x-1.3</version>
+	<version>7.x-1.4</version>
 	<name>GeoServer Security Module to bind to Drupal users of Cartaro instances</name>
 
 	<description>Bind GeoServer to Drupal instance by letting GeoServer access Drupal's database to verify permissions.
@@ -16,7 +16,7 @@ This is an plugin for GeoServer and not part of it.</description>
 	<url>https://github.com/geops/geoserver-sec-drupal</url>
 
 	<properties>
-		<geoserver.version>2.4.8</geoserver.version>
+		<geoserver.version>2.7.3</geoserver.version>
 		<wicket.version>1.4.12</wicket.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
@@ -66,14 +66,16 @@ This is an plugin for GeoServer and not part of it.</description>
 	<dependencies>
 		<dependency>
 			<groupId>org.geoserver</groupId>
-			<artifactId>main</artifactId>
+			<artifactId>gs-main</artifactId>
 			<version>${geoserver.version}</version>
+			<scope>provided</scope>
 		</dependency>
 		
 		<dependency>
 			<groupId>org.geoserver.web</groupId>
-			<artifactId>web-sec-core</artifactId>
+			<artifactId>gs-web-sec-core</artifactId>
 			<version>${geoserver.version}</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.wicket</groupId>
@@ -88,7 +90,7 @@ This is an plugin for GeoServer and not part of it.</description>
 		
 		<dependency>
 			<groupId>org.geoserver</groupId>
-			<artifactId>main</artifactId>
+			<artifactId>gs-main</artifactId>
 			<version>${geoserver.version}</version>
 			<classifier>tests</classifier>
 			<scope>test</scope>

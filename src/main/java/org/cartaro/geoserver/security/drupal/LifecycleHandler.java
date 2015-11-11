@@ -25,6 +25,11 @@ public class LifecycleHandler implements GeoServerLifecycleHandler {
 		// Empty as no special handling of disposal needed.
 	}
 
+	@Override
+	public void beforeReload() {
+		// nothing to do here, because the call to onReload is guaranteed.
+	}
+
 	public void onReload() {
 		reloadSecurityConfiguration();
 	}
