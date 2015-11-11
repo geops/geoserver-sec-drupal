@@ -6,6 +6,10 @@
 		<constructor-arg ref="geoServerSecurityManager" />
 	</bean>
 
+	<bean id="drupalSecurityConfigWhitelister" class="org.cartaro.geoserver.security.drupal.DrupalSecurityServiceConfigWhiteLister">
+
+	</bean>
+
 	<bean id="drupalUserGroupPanelInfo"
 		class="org.cartaro.geoserver.web.security.drupal.DrupalUserGroupServicePanelInfo">
 		<property name="id" value="security.drupalUserGroupService" />
