@@ -30,12 +30,14 @@ import org.geoserver.security.GeoServerSecurityManager;
 import org.geoserver.security.GeoServerUserGroupService;
 import org.geoserver.security.RESTfulDefinitionSource;
 import org.geoserver.security.config.SecurityNamedServiceConfig;
+import org.geoserver.security.config.SecurityRoleServiceConfig;
 import org.geoserver.security.event.RoleLoadedEvent;
 import org.geoserver.security.event.RoleLoadedListener;
 import org.geoserver.security.file.FileWatcher;
 import org.geoserver.security.impl.DataAccessRule;
 import org.geoserver.security.impl.GeoServerRole;
 import org.geotools.util.logging.Logging;
+import org.springframework.util.StringUtils;
 
 /**
  * Makes roles from Drupal instances available in GeoServer. This implementation
@@ -49,8 +51,15 @@ public class DrupalRoleService implements GeoServerRoleService {
 	private GeoServerSecurityManager securityManager;
 	private Set<RoleLoadedListener> listeners = Collections
 			.synchronizedSet(new HashSet<RoleLoadedListener>());
+	private String adminRole;
+	private String groupAdminRole;
 
 	public void initializeFromConfig(SecurityNamedServiceConfig config) {
+		if (config instanceof SecurityRoleServiceConfig) {
+			SecurityRoleServiceConfig c = (SecurityRoleServiceConfig) config;
+			this.adminRole = c.getAdminRoleName();
+			this.groupAdminRole = c.getGroupAdminRoleName();
+		}
 	}
 
 	/**
@@ -266,15 +275,27 @@ public class DrupalRoleService implements GeoServerRoleService {
 	}
 
 	public GeoServerRole getAdminRole() {
-		// There is no admin role since multiple Drupal installation might share
-		// the same GeoServer
-		return null;
+		LOGGER.info("Admin Role is: " + adminRole);
+		if (!StringUtils.hasLength(adminRole)) {
+			return null;
+		}
+		try {
+			return getRoleByName(adminRole);
+		} catch (IOException e) {
+			return null;
+		}
 	}
 
 	public GeoServerRole getGroupAdminRole() {
-		// There is no admin role since multiple Drupal installation might share
-		// the same GeoServer
-		return null;
+		LOGGER.info("Group Admin Role is: " + groupAdminRole);
+		if (!StringUtils.hasLength(groupAdminRole)) {
+			return null;
+		}
+		try {
+			return getRoleByName(groupAdminRole);
+		} catch (IOException e) {
+			return null;
+		}
 	}
 
 	public int getRoleCount() throws IOException {

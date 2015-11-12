@@ -81,22 +81,22 @@ public class DrupalSecurityServiceConfig extends BaseSecurityNamedServiceConfig
 		this.databaseHost = databaseHost;
 	}
 
+	private String adminRoleName = null;
+	private String groupAdminRoleName = null;
 	public String getAdminRoleName() {
-		// There are no admins
-		return null;
+		return adminRoleName;
 	}
 
 	public void setAdminRoleName(String adminRoleName) {
-		// There are no admins
+		this.adminRoleName = adminRoleName;
 	}
 
 	public String getGroupAdminRoleName() {
-		// There are no admins
-		return null;
+		return groupAdminRoleName;
 	}
 
-	public void setGroupAdminRoleName(String adminRoleName) {
-		// There are no admins
+	public void setGroupAdminRoleName(String groupAdminRoleName) {
+		this.groupAdminRoleName = groupAdminRoleName;
 	}
 
 	private String passwordEncoderName;

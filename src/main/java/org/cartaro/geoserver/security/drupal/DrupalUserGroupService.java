@@ -13,9 +13,9 @@ import java.util.logging.Logger;
 
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.LayerInfo;
-import org.geoserver.security.AccessMode;
-import org.geoserver.security.GeoServerUserGroupService;
-import org.geoserver.security.GeoServerUserGroupStore;
+import org.geoserver.config.GeoServer;
+import org.geoserver.platform.GeoServerExtensions;
+import org.geoserver.security.*;
 import org.geoserver.security.config.SecurityNamedServiceConfig;
 import org.geoserver.security.event.UserGroupLoadedEvent;
 import org.geoserver.security.event.UserGroupLoadedListener;
@@ -41,6 +41,11 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 	 * Denotes Drupal root users which are allowed to do everything. They have uid=1 in table users.
 	 */
 	private static final GeoServerRole DRUPAL_ROOT_ROLE = new GeoServerRole("administrator");
+
+	/**
+	 * Denotes user having the permission to administer geoserver from the geoserver plugin.
+	 */
+	private static final GeoServerRole DRUPAL_ADMINISTER_GEOSERVER_ROLE = new GeoServerRole("GeoServer Administrators");
 	
 	/**
 	 * Role name for all authenticated users in Drupal.
@@ -223,23 +228,34 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 		ResultSet rs;
 		try {
 			connector.connect();
-			rs = connector
-					.getResultSet(
-							"select users.name from users join users_roles using(uid) join role using(rid) where role.name =?",
-							connector.stripInstancePrefix(role).getAuthority());
-			while (rs.next()) {
-				userNames
-						.add(connector.addInstancePrefix(
-								new GeoServerRole(rs.getString("name")))
-								.getAuthority());
-			}
-			
-			if(DRUPAL_ROOT_ROLE.equals(role)){
+			final GeoServerRole stripedRole = connector.stripInstancePrefix(role);
+			if (DRUPAL_ROOT_ROLE.equals(stripedRole)) {
 				// id=1 means administrative privileges in Drupal
 				rs = connector.getResultSet("select name from users where uid=1");
 				if(rs.next()){
 					userNames.add(connector.addInstancePrefix(rs.getString("name")));
 				}
+				rs = null;
+			} else if (DRUPAL_ADMINISTER_GEOSERVER_ROLE.equals(stripedRole)) {
+				rs = connector
+						.getResultSet(
+								"select distinct users.name from users " +
+								"left join users_roles using(uid) " +
+								"join role ON role.rid = users_roles.rid or role.name='authenticated user' " +
+								"join role_permission rp on role.rid = rp.rid " +
+								"where rp.permission = 'administer geoserver' and rp.module = 'geoserver'");
+
+			} else {
+				rs = connector
+						.getResultSet(
+								"select users.name from users join users_roles using(uid) join role using(rid) where role.name =?",
+								stripedRole.getAuthority());
+			}
+			while (rs.next()) {
+				userNames
+						.add(connector.addInstancePrefix(
+								new GeoServerRole(rs.getString("name")))
+								.getAuthority());
 			}
 		} catch (SQLException e) {
 			throw new IOException(e);
@@ -265,7 +281,20 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 				roles.add(connector.addInstancePrefix(new GeoServerRole(rs
 						.getString("name"))));
 			}
-			
+			rs = connector
+					.getResultSet(
+							"select exists(select * from users " +
+									"left join users_roles using(uid) " +
+									"join role ON role.rid = users_roles.rid or role.name='" + AUTHENTICATED_USER + "' " +
+									"join role_permission rp on role.rid = rp.rid " +
+									"where users.name=? and " +
+									"rp.permission = 'administer geoserver' " +
+									"and rp.module = 'geoserver') as admin",
+							connector.stripInstancePrefix(
+									new GeoServerRole(username)).getAuthority());
+			if (rs.next() && rs.getBoolean("admin")) {
+				roles.add(connector.addInstancePrefix(DRUPAL_ADMINISTER_GEOSERVER_ROLE));
+			}
 			// Make all users workspace administrators during Drupal installation
 			if(connector.isDrupalCurrentlyInstalling()){
 				roles.add(connector.addInstancePrefix(INSTALLATION_ADMINISTRATOR));
@@ -285,13 +314,23 @@ public class DrupalUserGroupService extends AbstractGeoServerSecurityService
 		} finally {
 			connector.disconnect();
 		}
+		// Add GeoServer Admin Roles if local Admin Roles are contained. See http://docs.geoserver.org/latest/en/user/security/usergrouprole/interaction.html
+		// this is usually done by org.geoserver.security.impl.RoleCalculator::addMappedSystemRoles() which is not used.
+		final GeoServerRoleService rs = GeoServerExtensions.bean(GeoServerSecurityManager.class).getActiveRoleService();
+		if (roles.contains(rs.getAdminRole())) {
+			roles.add(GeoServerRole.ADMIN_ROLE);
+		}
+		if (roles.contains(rs.getAdminRole())) {
+			roles.add(GeoServerRole.GROUP_ADMIN_ROLE);
+		}
 		return Collections.unmodifiableSortedSet(roles);
 	}
 
 	public SortedSet<GeoServerRole> getRoles() throws IOException {
 		TreeSet<GeoServerRole> foundRoles = new TreeSet<GeoServerRole>();
 		foundRoles.add(connector.addInstancePrefix(DRUPAL_ROOT_ROLE));
-		
+		foundRoles.add(connector.addInstancePrefix(DRUPAL_ADMINISTER_GEOSERVER_ROLE));
+
 		ResultSet roles;
 		try {
 			connector.connect();
